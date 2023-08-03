@@ -1,7 +1,5 @@
 # Private Node Modules
 node_modules/
-creds.js
-
  
 # Environments
 .env
