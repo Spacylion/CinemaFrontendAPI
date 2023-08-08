@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
   const daysContainer = document.querySelector(".page-nav")
+
   const daysOfWeek = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
   const today = new Date()
   let currentDay = today

@@ -69,6 +69,12 @@ document.addEventListener("DOMContentLoaded", function () {
               }
             })
 
+            const selectedSeatsDetails = selectedSeats.map((index) => {
+              const rowNumber = Math.floor(index / hall.hall_places) + 1
+              const seatNumber = (index % hall.hall_places) + 1
+              return `${rowNumber}/${seatNumber}`
+            })
+
             const totalCost = selectedSeatsInfo.reduce(
               (sum, seat) => sum + seat.price,
               0
@@ -77,14 +83,18 @@ document.addEventListener("DOMContentLoaded", function () {
             const selectedSeatsHTML = selectedSeatsInfo
               .map(
                 (seat, index) => `
-      <p>Место ${index + 1}: ${seat.type} (${seat.price} руб)</p>
-    `
+        <p>Место ${selectedSeatsDetails[index]}: ${seat.type} (${seat.price} руб)</p>
+      `
               )
               .join("")
 
             localStorage.setItem(
               "selectedSeatsInfo",
               JSON.stringify(selectedSeatsInfo)
+            )
+            localStorage.setItem(
+              "selectedSeatsDetails",
+              JSON.stringify(selectedSeatsDetails)
             )
             localStorage.setItem("totalCost", totalCost)
             window.location.href = "payment.html"

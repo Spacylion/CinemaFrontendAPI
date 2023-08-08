@@ -3,9 +3,17 @@ document.addEventListener("DOMContentLoaded", function () {
   const selectedSeatsInfo = JSON.parse(
     localStorage.getItem("selectedSeatsInfo")
   )
+  const selectedSeatsDetails = JSON.parse(
+    localStorage.getItem("selectedSeatsDetails")
+  )
   const totalCost = localStorage.getItem("totalCost")
 
-  if (selectedSeanceData && selectedSeatsInfo && totalCost) {
+  if (
+    selectedSeanceData &&
+    selectedSeatsInfo &&
+    selectedSeatsDetails &&
+    totalCost
+  ) {
     const { filmName, seanceTime, hallName } = selectedSeanceData
 
     const filmNameElement = document.querySelector(".ticket__title")
@@ -17,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const selectedSeatsHTML = selectedSeatsInfo
       .map(
         (seat, index) => `
-        <p>Место ${index + 1}: ${seat.type} (${seat.price} руб)</p>
+        <p> ${selectedSeatsDetails[index]} </p>
       `
       )
       .join("")
