@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const daysOfWeek = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
   const today = new Date()
-  let currentDay = today
+  let currentDay = new Date(today)
 
   for (let i = 0; i < 6; i++) {
     const dayElement = document.createElement("a")
@@ -13,10 +13,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const dayName = daysOfWeek[dayIndex]
     const dayNumber = currentDay.getDate()
 
-    dayElement.innerHTML = `
-      <span class="page-nav__day-week">${dayName}</span>
-      <span class="page-nav__day-number">${dayNumber}</span>
-    `
+    if (currentDay.toDateString() === today.toDateString()) {
+      // Check if the current day is today
+      dayElement.innerHTML = `
+        <span class="page-nav__day-number">Сегодня,</span>
+        <span class="page-nav__day-number">${dayName}</span>
+        <span class="page-nav__day-number">${dayNumber}</span>
+      `
+      dayElement.classList.add("page-nav__day_today") // You can add a custom class for styling
+    } else {
+      dayElement.innerHTML = `
+        <span class="page-nav__day-week">${dayName}</span>
+        <span class="page-nav__day-number">${dayNumber}</span>
+      `
+    }
 
     if (i === 0) {
       dayElement.classList.add("page-nav__day_chosen")
@@ -31,7 +41,6 @@ document.addEventListener("DOMContentLoaded", function () {
     currentDay.setDate(currentDay.getDate() + 1)
   }
 })
-
 // задача 2 - 😎 распарсивание данных 1 страницы по фильам и расписанию
 document.addEventListener("DOMContentLoaded", function () {
   const filmsContainer = document.querySelector(".movie")
@@ -126,7 +135,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
           filmElement.appendChild(movieInfoElement)
 
-          // доавбляем сюда расписание и залы
           halls.forEach((hall) => {
             const seancesForHallAndFilm = seances.filter(
               (seance) =>
@@ -155,20 +163,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 seanceTimeLinkElement.classList.add("movie-seances__time")
                 seanceTimeLinkElement.textContent = seance.seance_time
 
-                seanceTimeLinkElement.addEventListener("click", () => {
-                  const dataToStore = {
-                    filmName: film.film_name,
-                    seanceTime: seance.seance_time,
-                    hallName: hall.hall_name,
-                  }
+                const [hours, minutes] = seance.seance_time.split(":")
+                const seanceTime = new Date()
+                seanceTime.setHours(hours)
+                seanceTime.setMinutes(minutes)
 
-                  localStorage.setItem(
-                    "selectedSeance",
-                    JSON.stringify(dataToStore)
-                  )
+                const currentTime = new Date()
 
-                  window.location.href = `hall.html?timestamp=${seance.seance_start}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
-                })
+                if (currentTime > seanceTime) {
+                  seanceTimeLinkElement.style.pointerEvents = "none"
+                  seanceTimeLinkElement.style.color = "gray"
+                } else {
+                  seanceTimeLinkElement.addEventListener("click", () => {})
+                }
 
                 seanceTimeBlockElement.appendChild(seanceTimeLinkElement)
                 seancesListElement.appendChild(seanceTimeBlockElement)
