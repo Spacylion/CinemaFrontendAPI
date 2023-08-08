@@ -174,7 +174,20 @@ document.addEventListener("DOMContentLoaded", function () {
                   seanceTimeLinkElement.style.pointerEvents = "none"
                   seanceTimeLinkElement.style.color = "gray"
                 } else {
-                  seanceTimeLinkElement.addEventListener("click", () => {})
+                  seanceTimeLinkElement.addEventListener("click", () => {
+                    const dataToStore = {
+                      filmName: film.film_name,
+                      seanceTime: seance.seance_time,
+                      hallName: hall.hall_name,
+                    }
+
+                    localStorage.setItem(
+                      "selectedSeance",
+                      JSON.stringify(dataToStore)
+                    )
+
+                    window.location.href = `hall.html?timestamp=${seance.seance_start}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
+                  })
                 }
 
                 seanceTimeBlockElement.appendChild(seanceTimeLinkElement)
