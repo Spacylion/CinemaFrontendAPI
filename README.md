@@ -1,11 +1,15 @@
 <p align="center">
-DEMO website you can see here: https://poravkino.netlify.app/
+DEMO website you can see here: 
+https://spacylion.github.io/CinemaFrontendAPI/
+or
+https://poravkino.netlify.app/
+
 </p>
 <p align="center">
   <img src="https://www.codewars.com/users/Spacylion/badges/micro" alt="Profile Banner" />
 </p>
 
-<h1 align="center">Kosach German  @SpacyLion)</h1>
+<h1 align="center">Kosach German  @SpacyLion</h1>
 
 <p align="center">
   <img src="https://sartoshigob.mypinata.cloud/ipfs/QmRxDRGTZMS9uy5wbNvKLuzXrenXpH285WGtci4E3SdDxL?_gl=1*x123te*_ga*MTA0NTE5ODg1NC4xNjg5Njk4ODcy*_ga_5RMPXG14TE*MTY4OTY5ODg3MS4xLjEuMTY4OTY5ODg4NC40Ny4wLjA." alt="Profile Banner" />
