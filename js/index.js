@@ -14,13 +14,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const dayNumber = currentDay.getDate()
 
     if (currentDay.toDateString() === today.toDateString()) {
-      // Check if the current day is today
       dayElement.innerHTML = `
         <span class="page-nav__day-number">Сегодня,</span>
         <span class="page-nav__day-number">${dayName}</span>
         <span class="page-nav__day-number">${dayNumber}</span>
       `
-      dayElement.classList.add("page-nav__day_today") // You can add a custom class for styling
+      dayElement.classList.add("page-nav__day_today")
     } else {
       dayElement.innerHTML = `
         <span class="page-nav__day-week">${dayName}</span>
