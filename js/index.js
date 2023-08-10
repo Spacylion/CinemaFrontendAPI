@@ -1,63 +1,71 @@
 document.addEventListener("DOMContentLoaded", function () {
   const daysContainer = document.querySelector(".page-nav")
+  const filmsContainer = document.querySelector(".movie")
+  const selectedDateKey = "selectedDate"
 
   const daysOfWeek = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
   const today = new Date()
   let currentDay = new Date(today)
+  currentDay.setDate(today.getDate() - 2)
 
-  for (let i = 0; i < 6; i++) {
+  function updateScheduleForDate(dateElement) {
+    const chosenDay = document.querySelector(".page-nav__day_chosen")
+    if (chosenDay) {
+      chosenDay.classList.remove("page-nav__day_chosen")
+    }
+    dateElement.classList.add("page-nav__day_chosen")
+    const selectedDate = new Date(dateElement.dataset.date)
+    localStorage.setItem(selectedDateKey, selectedDate.getTime())
+    fetchAndProcessData(selectedDate)
+  }
+
+  function createDayElement(dayName, dayNumber, isActive, isWeekend) {
     const dayElement = document.createElement("a")
     dayElement.classList.add("page-nav__day")
 
     const dayIndex = currentDay.getDay()
-    const dayName = daysOfWeek[dayIndex]
-    const dayNumber = currentDay.getDate()
+    const dayDateString = currentDay.toDateString()
 
-    if (currentDay.toDateString() === today.toDateString()) {
-      dayElement.innerHTML = `
-        <span class="page-nav__day-number">Сегодня,</span>
-        <span class="page-nav__day-number">${dayName}</span>
-        <span class="page-nav__day-number">${dayNumber}</span>
-      `
-      dayElement.classList.add("page-nav__day_today")
-    } else {
-      dayElement.innerHTML = `
-        <span class="page-nav__day-week">${dayName}</span>
-        <span class="page-nav__day-number">${dayNumber}</span>
-      `
-    }
+    dayElement.dataset.date = dayDateString
 
-    if (i === 0) {
+    if (isActive) {
+      dayElement.classList.add("page-nav__day_active")
       dayElement.classList.add("page-nav__day_chosen")
     }
 
-    if (dayIndex === 0 || dayIndex === 6) {
+    if (isWeekend) {
       dayElement.classList.add("page-nav__day_weekend")
     }
 
-    daysContainer.appendChild(dayElement)
+    dayElement.innerHTML = isActive
+      ? `<span class="page-nav__day-number">Сегодня,</span>`
+      : `<span class="page-nav__day-week">${dayName}</span>`
 
-    currentDay.setDate(currentDay.getDate() + 1)
+    dayElement.innerHTML += `<span class="page-nav__day-number">${dayName} ${dayNumber}</span>`
+
+    dayElement.addEventListener("click", () =>
+      updateScheduleForDate(dayElement)
+    )
+
+    return dayElement
   }
-})
-// задача 2 - 😎 распарсивание данных 1 страницы по фильам и расписанию
-document.addEventListener("DOMContentLoaded", function () {
-  const filmsContainer = document.querySelector(".movie")
 
-  function fetchAndProcessData() {
+  function fetchAndProcessData(selectedDate) {
     fetch("https://jscp-diplom.netoserver.ru/", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: "event=update",
+      body: `event=update&selectedDate=${selectedDate.toISOString()}`,
     })
       .then((response) => response.json())
       .then((data) => {
+        filmsContainer.innerHTML = ""
         const films = data.films.result
         const seances = data.seances.result
-        const halls = data.halls.result
+        const halls = data.halls.result.filter((hall) => hall.hall_open === "1")
 
+        filmsContainer.innerHTML = ""
         films.forEach((film) => {
           const filmElement = document.createElement("section")
           filmElement.classList.add("movie")
@@ -163,13 +171,33 @@ document.addEventListener("DOMContentLoaded", function () {
                 seanceTimeLinkElement.textContent = seance.seance_time
 
                 const [hours, minutes] = seance.seance_time.split(":")
-                const seanceTime = new Date()
+                const seanceTime = new Date(selectedDate)
                 seanceTime.setHours(hours)
                 seanceTime.setMinutes(minutes)
 
                 const currentTime = new Date()
 
-                if (currentTime > seanceTime) {
+                if (selectedDate.toDateString() === today.toDateString()) {
+                  if (currentTime > seanceTime) {
+                    seanceTimeLinkElement.style.pointerEvents = "none"
+                    seanceTimeLinkElement.style.color = "gray"
+                  } else {
+                    seanceTimeLinkElement.addEventListener("click", () => {
+                      const dataToStore = {
+                        filmName: film.film_name,
+                        seanceTime: seance.seance_time,
+                        hallName: hall.hall_name,
+                      }
+
+                      localStorage.setItem(
+                        "selectedSeance",
+                        JSON.stringify(dataToStore)
+                      )
+
+                      window.location.href = `hall.html?timestamp=${seance.seance_start}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
+                    })
+                  }
+                } else if (selectedDate < today) {
                   seanceTimeLinkElement.style.pointerEvents = "none"
                   seanceTimeLinkElement.style.color = "gray"
                 } else {
@@ -206,6 +234,18 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Error fetching data:", error)
       })
   }
+  for (let i = 0; i < 6; i++) {
+    const dayIndex = currentDay.getDay()
+    const dayName = daysOfWeek[dayIndex]
+    const dayNumber = currentDay.getDate()
+    const isActive = currentDay.toDateString() === today.toDateString()
+    const isWeekend = dayIndex === 0 || dayIndex === 6
 
-  fetchAndProcessData()
+    const dayElement = createDayElement(dayName, dayNumber, isActive, isWeekend)
+    daysContainer.appendChild(dayElement)
+
+    currentDay.setDate(currentDay.getDate() + 1)
+  }
+
+  fetchAndProcessData(today)
 })
