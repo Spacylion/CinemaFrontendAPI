@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const daysOfWeek = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
   const today = new Date()
   let currentDay = new Date(today)
-  currentDay.setDate(today.getDate() - 2)
+  currentDay.setDate(today.getDate())
 
   function updateScheduleForDate(dateElement) {
     const chosenDay = document.querySelector(".page-nav__day_chosen")
@@ -16,6 +16,10 @@ document.addEventListener("DOMContentLoaded", function () {
     dateElement.classList.add("page-nav__day_chosen")
     const selectedDate = new Date(dateElement.dataset.date)
     localStorage.setItem(selectedDateKey, selectedDate.getTime())
+    localStorage.setItem("selectedFilm", film.film_name)
+    localStorage.setItem("selectedSeanceTime", selectedDate.toISOString())
+    localStorage.setItem("selectedHallId", hall.hall_id)
+    localStorage.setItem("selectedSeanceId", seance.seance_id)
     fetchAndProcessData(selectedDate)
   }
 
@@ -56,16 +60,18 @@ document.addEventListener("DOMContentLoaded", function () {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: `event=update&selectedDate=${selectedDate.toISOString()}`,
+      body: `event=update`,
     })
       .then((response) => response.json())
       .then((data) => {
+        filmsContainer.innerHTML = ""
+        localStorage.setItem("apiResponseData", JSON.stringify(data))
+
         filmsContainer.innerHTML = ""
         const films = data.films.result
         const seances = data.seances.result
         const halls = data.halls.result.filter((hall) => hall.hall_open === "1")
 
-        filmsContainer.innerHTML = ""
         films.forEach((film) => {
           const filmElement = document.createElement("section")
           filmElement.classList.add("movie")
@@ -200,21 +206,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else if (selectedDate < today) {
                   seanceTimeLinkElement.style.pointerEvents = "none"
                   seanceTimeLinkElement.style.color = "gray"
-                } else {
-                  seanceTimeLinkElement.addEventListener("click", () => {
-                    const dataToStore = {
-                      filmName: film.film_name,
-                      seanceTime: seance.seance_time,
-                      hallName: hall.hall_name,
-                    }
-
-                    localStorage.setItem(
-                      "selectedSeance",
-                      JSON.stringify(dataToStore)
-                    )
-
-                    window.location.href = `hall.html?timestamp=${seance.seance_start}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
-                  })
                 }
 
                 seanceTimeBlockElement.appendChild(seanceTimeLinkElement)

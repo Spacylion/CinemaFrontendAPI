@@ -1,108 +1,107 @@
-document.addEventListener("DOMContentLoaded", function () {
-  const selectedSeanceData = localStorage.getItem("selectedSeance")
-  if (selectedSeanceData) {
-    const { filmName, seanceTime } = JSON.parse(selectedSeanceData)
+document.addEventListener("DOMContentLoaded", async function () {
+  try {
+    // Retrieve selected seance information from local storage
+    const selectedSeance = JSON.parse(localStorage.getItem("selectedSeance"))
+    const { filmName, seanceTime, hallName } = selectedSeance
 
-    const filmTitleElement = document.querySelector(".buying__info-title")
-    const seanceStartElement = document.querySelector(".buying__info-start")
-    const hallNameElement = document.querySelector(".buying__info-hall")
-
-    filmTitleElement.textContent = filmName
-    seanceStartElement.textContent = `Начало сеанса: ${seanceTime}`
-
-    const urlParams = new URLSearchParams(window.location.search)
-    const hallId = urlParams.get("hallId")
-    const seanceId = urlParams.get("seanceId")
-
-    fetch("https://jscp-diplom.netoserver.ru/", {
+    // Fetch API response
+    const response = await fetch("https://jscp-diplom.netoserver.ru/", {
       method: "POST",
+      body: "event=update",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: "event=update",
     })
-      .then((response) => response.json())
-      .then((data) => {
-        const halls = data.halls.result
-        const hall = halls.find((h) => h.hall_id === hallId)
 
-        if (hall) {
-          hallNameElement.textContent = `Зал: ${hall.hall_name}`
-          const hallConfigHTML = hall.hall_config
-          const seatsContainer = document.querySelector(".conf-step__wrapper")
-          seatsContainer.innerHTML = hallConfigHTML
+    if (!response.ok) {
+      throw new Error("Error fetching data")
+    }
 
-          const seats = seatsContainer.querySelectorAll(".conf-step__chair")
-          const bookingButton = document.querySelector(".acceptin-button")
+    const apiResponseData = await response.json()
 
-          let selectedSeats = []
+    // Find the hall configuration and reserved places
+    const selectedHall = apiResponseData.halls.result.find(
+      (hall) => hall.hall_name === hallName
+    )
 
-          seats.forEach((seat, index) => {
-            if (
-              seat.classList.contains("conf-step__chair_standart") ||
-              seat.classList.contains("conf-step__chair_vip")
-            ) {
-              seat.addEventListener("click", () => {
-                if (
-                  seat.classList.contains("conf-step__chair_standart") ||
-                  seat.classList.contains("conf-step__chair_vip")
-                ) {
-                  if (selectedSeats.includes(index)) {
-                    selectedSeats = selectedSeats.filter((i) => i !== index)
-                    seat.classList.remove("conf-step__chair_selected")
-                  } else {
-                    selectedSeats.push(index)
-                    seat.classList.add("conf-step__chair_selected")
-                  }
-                }
-              })
-            }
-          })
+    const hallConfig = selectedHall.hall_config
+    const hallPlaces = selectedHall.hall_places
+    const hallRow = selectedHall.hall_row
+    const hallStandardPrice = selectedHall.hall_price_standart
+    const hallVIPPrice = selectedHall.hall_price_vip
 
-          bookingButton.addEventListener("click", () => {
-            const selectedSeatsInfo = selectedSeats.map((index) => {
-              const seat = seats[index]
-              if (seat.classList.contains("conf-step__chair_standart")) {
-                return { type: "standart", price: 250 }
-              } else if (seat.classList.contains("conf-step__chair_vip")) {
-                return { type: "vip", price: 350 }
-              }
-            })
+    const reservedPlaces = apiResponseData.reservedPlaces || []
 
-            const selectedSeatsDetails = selectedSeats.map((index) => {
-              const rowNumber = Math.floor(index / hall.hall_places) + 1
-              const seatNumber = (index % hall.hall_places) + 1
-              return `${rowNumber}/${seatNumber}`
-            })
+    // Apply reserved places styling and configure seat click behavior
+    const hallWrapper = document.querySelector(".conf-step__wrapper")
+    hallWrapper.innerHTML = hallConfig
 
-            const totalCost = selectedSeatsInfo.reduce(
-              (sum, seat) => sum + seat.price,
-              0
-            )
+    hallWrapper.querySelectorAll(".conf-step__chair").forEach((seat) => {
+      const seatNumber = seat.getAttribute("data-place")
 
-            const selectedSeatsHTML = selectedSeatsInfo
-              .map(
-                (seat, index) => `
-        <p>Место ${selectedSeatsDetails[index]}: ${seat.type} (${seat.price} руб)</p>
-      `
-              )
-              .join("")
+      if (reservedPlaces.some((place) => place.place === seatNumber)) {
+        seat.classList.remove("conf-step__chair_standart")
+        seat.classList.remove("conf-step__chair_vip")
+        seat.classList.add("conf-step__chair_taken")
+        seat.setAttribute("title", "Занято")
+        seat.addEventListener("click", function () {
+          alert("Это место уже занято")
+        })
+      } else {
+        seat.addEventListener("click", function () {
+          if (seat.classList.contains("conf-step__chair_selected")) {
+            seat.classList.remove("conf-step__chair_selected")
+            seat.classList.add("conf-step__chair_standart")
+          } else {
+            seat.classList.remove("conf-step__chair_standart")
+            seat.classList.add("conf-step__chair_selected")
+          }
+        })
+      }
+    })
 
-            localStorage.setItem(
-              "selectedSeatsInfo",
-              JSON.stringify(selectedSeatsInfo)
-            )
-            localStorage.setItem(
-              "selectedSeatsDetails",
-              JSON.stringify(selectedSeatsDetails)
-            )
-            localStorage.setItem("totalCost", totalCost)
-            window.location.href = "payment.html"
-          })
-        }
+    // Handle booking button click
+    const bookingButton = document.querySelector(".acceptin-button")
+    bookingButton.addEventListener("click", function () {
+      // Retrieve selected seats information and calculate total cost
+      const selectedSeats = Array.from(
+        hallWrapper.querySelectorAll(".conf-step__chair_selected")
+      )
+
+      const selectedSeatsDetails = selectedSeats.map((seat) => {
+        const place = parseInt(seat.getAttribute("data-place"))
+        const row = Math.floor((place - 1) / hallPlaces) + 1
+        const seatInRow = ((place - 1) % hallPlaces) + 1
+        return `${row}/${seatInRow}`
       })
-      .catch((error) => {
-        console.error("Error fetching hall configuration:", error)
-      })
+
+      const vipSeatCount = selectedSeats.filter((seat) =>
+        seat.classList.contains("conf-step__chair_vip")
+      ).length
+
+      const totalCost =
+        vipSeatCount * hallVIPPrice +
+        (selectedSeats.length - vipSeatCount) * hallStandardPrice
+
+      // Store data in local storage and navigate to payment.html
+      const selectedSeanceData = {
+        filmName,
+        hallName,
+        hall_places: hallPlaces,
+        hall_rows: hallRow,
+        hall_selected: selectedSeatsDetails,
+        seanceTime,
+        totalCost,
+      }
+
+      localStorage.setItem(
+        "selectedSeanceData",
+        JSON.stringify(selectedSeanceData)
+      )
+
+      window.location.href = "payment.html"
+    })
+  } catch (error) {
+    console.error("Error fetching data:", error)
   }
 })
