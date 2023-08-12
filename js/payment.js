@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const bookingData = JSON.parse(localStorage.getItem("bookingData")) // Change to bookingData
+  const bookingData = JSON.parse(localStorage.getItem("bookingData"))
 
-  const hallConfiguration = bookingData.hallConfig // Use bookingData.hallConfig
+  const hallConfiguration = bookingData.hallConfig
 
   const filmNameElement = document.querySelector(".ticket__title")
   const hallNameElement = document.querySelector(".ticket__hall")
@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const totalCostElement = document.querySelector(".ticket__cost")
 
   if (filmNameElement) {
-    filmNameElement.textContent = bookingData.filmName // Use bookingData.filmName
+    filmNameElement.textContent = bookingData.filmName
   }
   if (hallNameElement) {
     hallNameElement.textContent = bookingData.hallName
@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const acceptButton = document.querySelector(".acceptin-button")
   if (acceptButton) {
     acceptButton.addEventListener("click", async () => {
-      const timestamp = bookingData.timestamp // Use bookingData.timestamp
+      const timestamp = bookingData.timestamp
       const hallId = bookingData.hallId
       const seanceId = bookingData.seanceId
       const hallConfiguration = encodeURIComponent(hallConfiguration)
