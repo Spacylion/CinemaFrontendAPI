@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const daysContainer = document.querySelector(".page-nav")
   const filmsContainer = document.querySelector(".movie")
   const selectedDateKey = "selectedDate"
+  const bookingData = JSON.parse(localStorage.getItem("bookingData"))
 
   const daysOfWeek = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
   const today = new Date()
@@ -16,10 +17,6 @@ document.addEventListener("DOMContentLoaded", function () {
     dateElement.classList.add("page-nav__day_chosen")
     const selectedDate = new Date(dateElement.dataset.date)
     localStorage.setItem(selectedDateKey, selectedDate.getTime())
-    localStorage.setItem("selectedFilm", film.film_name)
-    localStorage.setItem("selectedSeanceTime", selectedDate.toISOString())
-    localStorage.setItem("selectedHallId", hall.hall_id)
-    localStorage.setItem("selectedSeanceId", seance.seance_id)
     fetchAndProcessData(selectedDate)
   }
 
@@ -67,6 +64,8 @@ document.addEventListener("DOMContentLoaded", function () {
         filmsContainer.innerHTML = ""
         localStorage.setItem("apiResponseData", JSON.stringify(data))
 
+        const currentTime = new Date().getTime()
+
         filmsContainer.innerHTML = ""
         const films = data.films.result
         const seances = data.seances.result
@@ -93,6 +92,7 @@ document.addEventListener("DOMContentLoaded", function () {
           const movieTitleElement = document.createElement("h2")
           movieTitleElement.classList.add("movie__title")
           movieTitleElement.textContent = film.film_name
+
           const seanceListElement = document.createElement("ul")
           seanceListElement.classList.add("movie__seance-list")
 
@@ -102,25 +102,42 @@ document.addEventListener("DOMContentLoaded", function () {
               seanceTimeElement.classList.add("movie__seance-time")
               seanceTimeElement.textContent = seance.seance_time
 
-              seanceTimeElement.addEventListener("click", () => {
-                const selectedSeanceData = {
-                  filmName: film.film_name,
-                  seanceTime: seance.seance_time,
-                  hallId: seance.seance_hallid,
-                  seanceId: seance.seance_id,
-                }
+              const [hours, minutes] = seance.seance_time.split(":")
+              const seanceStartTime = new Date(
+                selectedDate.getFullYear(),
+                selectedDate.getMonth(),
+                selectedDate.getDate(),
+                hours,
+                minutes
+              ).getTime()
 
-                localStorage.setItem(
-                  "selectedSeance",
-                  JSON.stringify(selectedSeanceData)
-                )
+              if (currentTime >= seanceStartTime) {
+                seanceTimeElement.style.backgroundColor = "#ccc"
+                seanceTimeElement.style.color = "#666"
+                seanceTimeElement.style.cursor = "not-allowed"
+                seanceTimeElement.style.pointerEvents = "none"
+              } else {
+                seanceTimeElement.addEventListener("click", () => {
+                  const selectedSeanceData = {
+                    filmName: film.film_name,
+                    seanceTime: seance.seance_time,
+                    hallId: seance.seance_hallid,
+                    seanceId: seance.seance_id,
+                  }
 
-                window.location.href = `hall.html`
-              })
+                  localStorage.setItem(
+                    "selectedSeance",
+                    JSON.stringify(selectedSeanceData)
+                  )
+
+                  window.location.href = `hall.html?timestamp=${seanceStartTime}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
+                })
+              }
 
               seanceListElement.appendChild(seanceTimeElement)
             }
           })
+
           const movieSynopsisElement = document.createElement("p")
           movieSynopsisElement.classList.add("movie__synopsis")
           movieSynopsisElement.textContent = film.film_description
@@ -177,35 +194,43 @@ document.addEventListener("DOMContentLoaded", function () {
                 seanceTimeLinkElement.textContent = seance.seance_time
 
                 const [hours, minutes] = seance.seance_time.split(":")
-                const seanceTime = new Date(selectedDate)
-                seanceTime.setHours(hours)
-                seanceTime.setMinutes(minutes)
+                const seanceStartTime = new Date(
+                  selectedDate.getFullYear(),
+                  selectedDate.getMonth(),
+                  selectedDate.getDate(),
+                  hours,
+                  minutes
+                ).getTime()
 
-                const currentTime = new Date()
-
-                if (selectedDate.toDateString() === today.toDateString()) {
-                  if (currentTime > seanceTime) {
-                    seanceTimeLinkElement.style.pointerEvents = "none"
-                    seanceTimeLinkElement.style.color = "gray"
-                  } else {
-                    seanceTimeLinkElement.addEventListener("click", () => {
-                      const dataToStore = {
-                        filmName: film.film_name,
-                        seanceTime: seance.seance_time,
-                        hallName: hall.hall_name,
-                      }
-
-                      localStorage.setItem(
-                        "selectedSeance",
-                        JSON.stringify(dataToStore)
-                      )
-
-                      window.location.href = `hall.html?timestamp=${seance.seance_start}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
-                    })
-                  }
-                } else if (selectedDate < today) {
+                if (currentTime >= seanceStartTime) {
+                  seanceTimeLinkElement.style.backgroundColor = "#ccc"
+                  seanceTimeLinkElement.style.color = "#666"
+                  seanceTimeLinkElement.style.cursor = "not-allowed"
                   seanceTimeLinkElement.style.pointerEvents = "none"
-                  seanceTimeLinkElement.style.color = "gray"
+                } else {
+                  seanceTimeLinkElement.addEventListener("click", () => {
+                    const dataToStore = {
+                      filmName: film.film_name,
+                      seanceTime: seance.seance_time,
+                      hallName: hall.hall_name,
+                      hallConfig: hall.hall_config,
+                      hallVIPPrice: hall.hall_price_vip,
+                      hallSeatPrice: hall.hall_price_standart,
+                      hallRaw: hall.hall_rows,
+                      hall_places: hall.hall_places,
+                      timestamp: seanceStartTime,
+                      hallId: seance.seance_hallid,
+                      seanceId: seance.seance_id,
+                    }
+
+                    localStorage.setItem(
+                      "selectedSeance",
+                      JSON.stringify(dataToStore)
+                    )
+
+                    const url = `hall.html?timestamp=${seanceStartTime}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
+                    window.location.href = url
+                  })
                 }
 
                 seanceTimeBlockElement.appendChild(seanceTimeLinkElement)
@@ -225,6 +250,7 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Error fetching data:", error)
       })
   }
+
   for (let i = 0; i < 6; i++) {
     const dayIndex = currentDay.getDay()
     const dayName = daysOfWeek[dayIndex]

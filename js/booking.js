@@ -1,107 +1,115 @@
-document.addEventListener("DOMContentLoaded", async function () {
+document.addEventListener("DOMContentLoaded", function () {
   try {
-    // Retrieve selected seance information from local storage
     const selectedSeance = JSON.parse(localStorage.getItem("selectedSeance"))
-    const { filmName, seanceTime, hallName } = selectedSeance
+    const {
+      timestamp,
+      hallId,
+      seanceId,
+      hallName,
+      filmName,
+      hallConfig,
+      seanceTime,
+      hallRaw,
+      hallSeatPrice,
+      hallVIPPrice,
+      hallStandardPrice,
+    } = selectedSeance
 
-    // Fetch API response
-    const response = await fetch("https://jscp-diplom.netoserver.ru/", {
-      method: "POST",
-      body: "event=update",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    })
+    document.querySelector(".buying__info-title").textContent = filmName
+    document.querySelector(".buying__info-start").textContent = seanceTime
+    document.querySelector(".buying__info-hall").textContent = hallName
 
-    if (!response.ok) {
-      throw new Error("Error fetching data")
+    const confStepWrapper = document.querySelector(".conf-step__wrapper")
+    confStepWrapper.innerHTML = hallConfig
+    const hallWrapper = document.querySelector(".conf-step__wrapper")
+    const selectedSeats = []
+    const hallPlaces = parseInt(hallRaw)
+
+    const seatPrices = {
+      "conf-step__chair_standart": parseInt(hallSeatPrice),
+      "conf-step__chair_vip": parseInt(hallVIPPrice),
     }
 
-    const apiResponseData = await response.json()
+    let totalCost = 0
 
-    // Find the hall configuration and reserved places
-    const selectedHall = apiResponseData.halls.result.find(
-      (hall) => hall.hall_name === hallName
-    )
-
-    const hallConfig = selectedHall.hall_config
-    const hallPlaces = selectedHall.hall_places
-    const hallRow = selectedHall.hall_row
-    const hallStandardPrice = selectedHall.hall_price_standart
-    const hallVIPPrice = selectedHall.hall_price_vip
-
-    const reservedPlaces = apiResponseData.reservedPlaces || []
-
-    // Apply reserved places styling and configure seat click behavior
-    const hallWrapper = document.querySelector(".conf-step__wrapper")
-    hallWrapper.innerHTML = hallConfig
-
-    hallWrapper.querySelectorAll(".conf-step__chair").forEach((seat) => {
-      const seatNumber = seat.getAttribute("data-place")
-
-      if (reservedPlaces.some((place) => place.place === seatNumber)) {
-        seat.classList.remove("conf-step__chair_standart")
-        seat.classList.remove("conf-step__chair_vip")
-        seat.classList.add("conf-step__chair_taken")
-        seat.setAttribute("title", "Занято")
+    hallWrapper.querySelectorAll(".conf-step__chair").forEach((seat, index) => {
+      if (
+        !seat.classList.contains("conf-step__chair_taken") &&
+        !seat.classList.contains("conf-step__chair_disabled")
+      ) {
         seat.addEventListener("click", function () {
-          alert("Это место уже занято")
-        })
-      } else {
-        seat.addEventListener("click", function () {
-          if (seat.classList.contains("conf-step__chair_selected")) {
-            seat.classList.remove("conf-step__chair_selected")
-            seat.classList.add("conf-step__chair_standart")
+          seat.classList.toggle("conf-step__chair_selected")
+
+          const seatNumber = index + 1
+          const rowIndex = Math.floor((seatNumber - 1) / hallPlaces) + 1
+          const seatIndex = ((seatNumber - 1) % hallPlaces) + 1
+
+          console.log(`Clicked on Seat: Row ${rowIndex}, Seat ${seatIndex}`)
+
+          const seatPriceClass = Array.from(seat.classList).find(
+            (className) => className in seatPrices
+          )
+          const seatPrice = seatPriceClass ? seatPrices[seatPriceClass] : 0
+
+          const seatIndexInArray = selectedSeats.indexOf(
+            `${rowIndex}/${seatIndex}`
+          )
+          if (seatIndexInArray !== -1) {
+            selectedSeats.splice(seatIndexInArray, 1)
+            totalCost -= seatPrice
           } else {
-            seat.classList.remove("conf-step__chair_standart")
-            seat.classList.add("conf-step__chair_selected")
+            selectedSeats.push(`${rowIndex}/${seatIndex}`)
+            totalCost += seatPrice
           }
+
+          console.log(`Total Cost: ${totalCost} р`)
         })
       }
     })
 
-    // Handle booking button click
     const bookingButton = document.querySelector(".acceptin-button")
-    bookingButton.addEventListener("click", function () {
-      // Retrieve selected seats information and calculate total cost
-      const selectedSeats = Array.from(
-        hallWrapper.querySelectorAll(".conf-step__chair_selected")
+    bookingButton.addEventListener("click", async function () {
+      const selectedRows = selectedSeats.map(
+        (seatNumber) => Math.floor((seatNumber - 1) / hallPlaces) + 1
+      )
+      const selectedSeatNumbers = selectedSeats.map(
+        (seatNumber) => ((seatNumber - 1) % hallPlaces) + 1
       )
 
-      const selectedSeatsDetails = selectedSeats.map((seat) => {
-        const place = parseInt(seat.getAttribute("data-place"))
-        const row = Math.floor((place - 1) / hallPlaces) + 1
-        const seatInRow = ((place - 1) % hallPlaces) + 1
-        return `${row}/${seatInRow}`
-      })
+      const hallConfiguration = encodeURIComponent(confStepWrapper.innerHTML)
+      const requestBody = `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfiguration=${hallConfiguration}`
 
-      const vipSeatCount = selectedSeats.filter((seat) =>
-        seat.classList.contains("conf-step__chair_vip")
-      ).length
+      try {
+        const response = await fetch("https://jscp-diplom.netoserver.ru/", {
+          method: "POST",
+          body: requestBody,
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        })
 
-      const totalCost =
-        vipSeatCount * hallVIPPrice +
-        (selectedSeats.length - vipSeatCount) * hallStandardPrice
+        if (response.ok) {
+          const bookingData = {
+            filmName,
+            hallName,
+            selectedSeats,
+            seanceTime,
+            totalCost,
+            seanceId,
+            hallConfig: hallConfiguration,
+          }
 
-      // Store data in local storage and navigate to payment.html
-      const selectedSeanceData = {
-        filmName,
-        hallName,
-        hall_places: hallPlaces,
-        hall_rows: hallRow,
-        hall_selected: selectedSeatsDetails,
-        seanceTime,
-        totalCost,
+          localStorage.setItem("bookingData", JSON.stringify(bookingData))
+
+          window.location.href = "payment.html"
+        } else {
+          console.error("Error updating hall_config")
+        }
+      } catch (error) {
+        console.error("An error occurred:", error)
       }
-
-      localStorage.setItem(
-        "selectedSeanceData",
-        JSON.stringify(selectedSeanceData)
-      )
-
-      window.location.href = "payment.html"
     })
   } catch (error) {
-    console.error("Error fetching data:", error)
+    console.error("Error:", error)
   }
 })

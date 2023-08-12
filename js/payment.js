@@ -1,75 +1,68 @@
-document.addEventListener("DOMContentLoaded", async function () {
-  const selectedSeanceData = JSON.parse(localStorage.getItem("selectedSeance"))
-  const urlParams = new URLSearchParams(window.location.search)
-  const hallId = urlParams.get("hallId")
-  const seanceId = urlParams.get("seanceId")
-  const hallConfiguration = localStorage.getItem("hallConfiguration")
+document.addEventListener("DOMContentLoaded", () => {
+  const selectedSeanceData = JSON.parse(
+    localStorage.getItem("selectedSeanceData")
+  )
+  const selectedSeance = JSON.parse(localStorage.getItem("selectedSeance"))
 
-  if (selectedSeanceData) {
-    const { filmName, seanceTime, hallName } = selectedSeanceData
+  const hallConfiguration = selectedSeance.hallConfig
 
-    const filmNameElement = document.querySelector(".ticket__title")
-    const hallElement = document.querySelector(".ticket__hall")
-    const seanceStartElement = document.querySelector(".ticket__start")
+  const filmNameElement = document.querySelector(".ticket__title")
+  const hallNameElement = document.querySelector(".ticket__hall")
+  const seanceTimeElement = document.querySelector(".ticket__start")
+  const selectedSeatsElement = document.querySelector(".ticket__chairs")
+  const totalCostElement = document.querySelector(".ticket__cost")
 
-    filmNameElement.textContent = filmName
-    hallElement.textContent = hallName
-    seanceStartElement.textContent = seanceTime
+  if (filmNameElement) {
+    filmNameElement.textContent = selectedSeanceData.filmName
+  }
+  if (hallNameElement) {
+    hallNameElement.textContent = selectedSeanceData.hallName
+  }
+  if (seanceTimeElement) {
+    seanceTimeElement.textContent = selectedSeanceData.seanceTime
+  }
+  if (selectedSeatsElement) {
+    selectedSeatsElement.textContent =
+      selectedSeanceData.selectedSeats.join(", ")
+  }
+  if (totalCostElement) {
+    totalCostElement.textContent = selectedSeanceData.totalCost + " рублей"
+  }
 
-    // Retrieve selected seats information
-    const selectedSeatsInfo = JSON.parse(
-      localStorage.getItem("selectedSeatsInfo")
-    )
-    const selectedSeatsDetails = JSON.parse(
-      localStorage.getItem("selectedSeatsDetails")
-    )
-    const totalCost = localStorage.getItem("totalCost")
-
-    if (selectedSeatsInfo && selectedSeatsDetails && totalCost) {
-      const seatsElement = document.querySelector(".ticket__chairs")
-      const costElement = document.querySelector(".ticket__cost")
-
-      const selectedSeatsHTML = selectedSeatsInfo
-        .map((seat, index) => `<p>${selectedSeatsDetails[index]}</p>`)
-        .join("")
-
-      seatsElement.innerHTML = selectedSeatsHTML
-      costElement.textContent = `${totalCost} рублей`
-    }
-
-    // Add event listener to the "Get Code" button
-    const getCodeButton = document.querySelector(".acceptin-button")
-    getCodeButton.addEventListener("click", async function () {
-      const timestamp = Math.floor(new Date().getTime() / 1000)
-      const hallId = hallId /* get hallId from localStorage or URL */
-      const seanceId = seanceId /* get seanceId from localStorage or URL */
-      const hallConfiguration =
-        hallConfiguration /* get hallConfiguration from the previous page */
-
-      // Prepare the POST request data
-      const postData = `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfiguration=${hallConfiguration}`
+  const acceptButton = document.querySelector(".acceptin-button")
+  if (acceptButton) {
+    acceptButton.addEventListener("click", async () => {
+      const timestamp = selectedSeanceData.timestamp
+      const hallId = selectedSeance.hallId
+      const seanceId = selectedSeance.seanceId
+      const hallConfiguration = encodeURIComponent(hallConfiguration)
+      const requestBody = `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfiguration=${hallConfiguration}`
 
       try {
-        const response = await fetch("https://jscp-diplom.netoserver.ru/", {
+        const response = await fetch("your_api_endpoint_here", {
           method: "POST",
-          body: postData,
+          body: requestBody,
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
         })
 
         if (response.ok) {
-          // Handle success, e.g., display a success message
-          alert("Бронирование успешно добавлено в базу данных")
-          // Optionally, clear the stored seat and cost information
-          localStorage.removeItem("selectedSeatsInfo")
-          localStorage.removeItem("selectedSeatsDetails")
-          localStorage.removeItem("totalCost")
+          const ticketData = {
+            filmName: selectedSeanceData.filmName,
+            seatsInfo: selectedSeatsInfo,
+            hallName: selectedSeanceData.hallName,
+            seanceTime: selectedSeanceData.seanceTime,
+          }
+
+          localStorage.setItem("ticketData", JSON.stringify(ticketData))
+
+          window.location.href = "ticket.html"
         } else {
-          throw new Error("Error adding booking data")
+          console.error("Error adding ticket information to the database")
         }
       } catch (error) {
-        console.error("Error adding booking data:", error)
+        console.error("An error occurred:", error)
       }
     })
   }
