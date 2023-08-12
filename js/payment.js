@@ -1,10 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const selectedSeanceData = JSON.parse(
-    localStorage.getItem("selectedSeanceData")
-  )
-  const selectedSeance = JSON.parse(localStorage.getItem("selectedSeance"))
+  const bookingData = JSON.parse(localStorage.getItem("bookingData")) // Change to bookingData
 
-  const hallConfiguration = selectedSeance.hallConfig
+  const hallConfiguration = bookingData.hallConfig // Use bookingData.hallConfig
 
   const filmNameElement = document.querySelector(".ticket__title")
   const hallNameElement = document.querySelector(".ticket__hall")
@@ -13,28 +10,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const totalCostElement = document.querySelector(".ticket__cost")
 
   if (filmNameElement) {
-    filmNameElement.textContent = selectedSeanceData.filmName
+    filmNameElement.textContent = bookingData.filmName // Use bookingData.filmName
   }
   if (hallNameElement) {
-    hallNameElement.textContent = selectedSeanceData.hallName
+    hallNameElement.textContent = bookingData.hallName
   }
   if (seanceTimeElement) {
-    seanceTimeElement.textContent = selectedSeanceData.seanceTime
+    seanceTimeElement.textContent = bookingData.seanceTime
   }
   if (selectedSeatsElement) {
-    selectedSeatsElement.textContent =
-      selectedSeanceData.selectedSeats.join(", ")
+    selectedSeatsElement.textContent = bookingData.selectedSeats.join(", ")
   }
   if (totalCostElement) {
-    totalCostElement.textContent = selectedSeanceData.totalCost + " рублей"
+    totalCostElement.textContent = bookingData.totalCost + " рублей"
   }
 
   const acceptButton = document.querySelector(".acceptin-button")
   if (acceptButton) {
     acceptButton.addEventListener("click", async () => {
-      const timestamp = selectedSeanceData.timestamp
-      const hallId = selectedSeance.hallId
-      const seanceId = selectedSeance.seanceId
+      const timestamp = bookingData.timestamp // Use bookingData.timestamp
+      const hallId = bookingData.hallId
+      const seanceId = bookingData.seanceId
       const hallConfiguration = encodeURIComponent(hallConfiguration)
       const requestBody = `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfiguration=${hallConfiguration}`
 
