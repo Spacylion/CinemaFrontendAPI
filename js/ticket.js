@@ -1,27 +1,13 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  const selectedSeanceData = JSON.parse(
-    localStorage.getItem("selectedSeanceData")
-  )
-  const selectedSeatsInfo = JSON.parse(
-    localStorage.getItem("selectedSeatsInfo")
-  )
-  const QRCreator = window.QRCreator
+  const selectedSeanceData = JSON.parse(localStorage.getItem("dataToStore"))
+  const selectedSeats = JSON.parse(localStorage.getItem("selectedSeats"))
 
   const filmNameElement = document.querySelector(".ticket__title")
   const hallNameElement = document.querySelector(".ticket__hall")
   const seanceTimeElement = document.querySelector(".ticket__start")
   const selectedSeatsElement = document.querySelector(".ticket__chairs")
   const totalCostElement = document.querySelector(".ticket__cost")
-  const qrData = `${selectedSeanceData.filmName}\n${selectedSeatsInfo}\n${selectedSeanceData.hallName}\n${selectedSeanceData.seanceTime}`
-  const qrcodeContainer = document.getElementById("qrcode")
-  const qrcode = QRCreator(qrData)
 
-  if (qrcode.error) {
-    qrcodeContainer.textContent = `Ошибка: ${qrcode.error}`
-  } else {
-    qrcodeContainer.innerHTML = ""
-    qrcodeContainer.appendChild(qrcode.result)
-  }
   if (filmNameElement) {
     filmNameElement.textContent = selectedSeanceData.filmName
   }
@@ -32,10 +18,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     seanceTimeElement.textContent = selectedSeanceData.seanceTime
   }
   if (selectedSeatsElement) {
-    selectedSeatsElement.textContent =
-      selectedSeanceData.selectedSeats.join(", ")
+    if (selectedSeats) {
+      selectedSeatsElement.textContent = selectedSeats.join(", ")
+    } else {
+      selectedSeatsElement.textContent = "No seats information available"
+    }
   }
-  if (totalCostElement) {
-    totalCostElement.textContent = selectedSeanceData.totalCost + " рублей"
+
+  const qrData = `${selectedSeanceData.filmName}\n${selectedSeats.join(
+    ", "
+  )}\n${selectedSeanceData.hallName}\n${selectedSeanceData.seanceTime}`
+
+  const qrcodeContainer = document.getElementById("qrcode")
+  const qrcode = QRCreator(qrData)
+
+  if (qrcode.error) {
+    qrcodeContainer.textContent = `Error: ${qrcode.error}`
+  } else {
+    qrcodeContainer.appendChild(qrcode.result)
   }
 })

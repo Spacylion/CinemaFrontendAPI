@@ -1,54 +1,14 @@
 document.addEventListener("DOMContentLoaded", function () {
   const daysContainer = document.querySelector(".page-nav")
   const filmsContainer = document.querySelector(".movie")
-  const selectedDateKey = "selectedDate"
-  const bookingData = JSON.parse(localStorage.getItem("bookingData"))
-
   const daysOfWeek = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
-  const today = new Date()
-  let currentDay = new Date(today)
-  currentDay.setDate(today.getDate())
 
-  function updateScheduleForDate(dateElement) {
+  function updateScheduleForDate(dateElement, selectedDate) {
     const chosenDay = document.querySelector(".page-nav__day_chosen")
-    if (chosenDay) {
-      chosenDay.classList.remove("page-nav__day_chosen")
-    }
+    if (chosenDay) chosenDay.classList.remove("page-nav__day_chosen")
     dateElement.classList.add("page-nav__day_chosen")
-    const selectedDate = new Date(dateElement.dataset.date)
-    localStorage.setItem(selectedDateKey, selectedDate.getTime())
+
     fetchAndProcessData(selectedDate)
-  }
-
-  function createDayElement(dayName, dayNumber, isActive, isWeekend) {
-    const dayElement = document.createElement("a")
-    dayElement.classList.add("page-nav__day")
-
-    const dayIndex = currentDay.getDay()
-    const dayDateString = currentDay.toDateString()
-
-    dayElement.dataset.date = dayDateString
-
-    if (isActive) {
-      dayElement.classList.add("page-nav__day_active")
-      dayElement.classList.add("page-nav__day_chosen")
-    }
-
-    if (isWeekend) {
-      dayElement.classList.add("page-nav__day_weekend")
-    }
-
-    dayElement.innerHTML = isActive
-      ? `<span class="page-nav__day-number">Сегодня,</span>`
-      : `<span class="page-nav__day-week">${dayName}</span>`
-
-    dayElement.innerHTML += `<span class="page-nav__day-number">${dayName} ${dayNumber}</span>`
-
-    dayElement.addEventListener("click", () =>
-      updateScheduleForDate(dayElement)
-    )
-
-    return dayElement
   }
 
   function fetchAndProcessData(selectedDate) {
@@ -65,16 +25,16 @@ document.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem("apiResponseData", JSON.stringify(data))
 
         const currentTime = new Date().getTime()
-
-        filmsContainer.innerHTML = ""
         const films = data.films.result
         const seances = data.seances.result
         const halls = data.halls.result.filter((hall) => hall.hall_open === "1")
 
         films.forEach((film) => {
           const filmElement = document.createElement("section")
-          filmElement.classList.add("movie")
-
+          filmElement.className = "movie"
+          const seancesForFilm = seances.filter(
+            (seance) => seance.seance_filmid === film.film_id
+          )
           const movieInfoElement = document.createElement("div")
           movieInfoElement.classList.add("movie__info")
 
@@ -99,40 +59,8 @@ document.addEventListener("DOMContentLoaded", function () {
           seances.forEach((seance) => {
             if (seance.seance_filmid === film.film_id) {
               const seanceTimeElement = document.createElement("li")
-              seanceTimeElement.classList.add("movie__seance-time")
+              seanceTimeElement.className = "movie__seance-time"
               seanceTimeElement.textContent = seance.seance_time
-
-              const [hours, minutes] = seance.seance_time.split(":")
-              const seanceStartTime = new Date(
-                selectedDate.getFullYear(),
-                selectedDate.getMonth(),
-                selectedDate.getDate(),
-                hours,
-                minutes
-              ).getTime()
-
-              if (currentTime >= seanceStartTime) {
-                seanceTimeElement.style.backgroundColor = "#ccc"
-                seanceTimeElement.style.color = "#666"
-                seanceTimeElement.style.cursor = "not-allowed"
-                seanceTimeElement.style.pointerEvents = "none"
-              } else {
-                seanceTimeElement.addEventListener("click", () => {
-                  const selectedSeanceData = {
-                    filmName: film.film_name,
-                    seanceTime: seance.seance_time,
-                    hallId: seance.seance_hallid,
-                    seanceId: seance.seance_id,
-                  }
-
-                  localStorage.setItem(
-                    "selectedSeance",
-                    JSON.stringify(selectedSeanceData)
-                  )
-
-                  window.location.href = `hall.html?timestamp=${seanceStartTime}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
-                })
-              }
 
               seanceListElement.appendChild(seanceTimeElement)
             }
@@ -166,10 +94,8 @@ document.addEventListener("DOMContentLoaded", function () {
           filmElement.appendChild(movieInfoElement)
 
           halls.forEach((hall) => {
-            const seancesForHallAndFilm = seances.filter(
-              (seance) =>
-                seance.seance_hallid === hall.hall_id &&
-                seance.seance_filmid === film.film_id
+            const seancesForHallAndFilm = seancesForFilm.filter(
+              (seance) => seance.seance_hallid === hall.hall_id
             )
 
             if (seancesForHallAndFilm.length > 0) {
@@ -211,24 +137,28 @@ document.addEventListener("DOMContentLoaded", function () {
                   seanceTimeLinkElement.addEventListener("click", () => {
                     const dataToStore = {
                       filmName: film.film_name,
-                      seanceTime: seance.seance_time,
-                      hallName: hall.hall_name,
                       hallConfig: hall.hall_config,
-                      hallVIPPrice: hall.hall_price_vip,
-                      hallSeatPrice: hall.hall_price_standart,
-                      hallRaw: hall.hall_rows,
-                      hall_places: hall.hall_places,
-                      timestamp: seanceStartTime,
                       hallId: seance.seance_hallid,
+                      hallName: hall.hall_name,
+                      hallRaw: hall.hall_rows,
+                      hallSeatPrice: hall.hall_price_standart,
+                      hallVIPPrice: hall.hall_price_vip,
+                      hall_places: hall.hall_places,
                       seanceId: seance.seance_id,
+                      seanceTime: seance.seance_time,
+                      timestamp: Math.floor(seanceStartTime / 1000),
                     }
 
                     localStorage.setItem(
-                      "selectedSeance",
+                      "dataToStore",
                       JSON.stringify(dataToStore)
                     )
 
-                    const url = `hall.html?timestamp=${seanceStartTime}&hallId=${seance.seance_hallid}&seanceId=${seance.seance_id}`
+                    const url = `hall.html?timestamp=${Math.floor(
+                      seanceStartTime / 1000
+                    )}&hallId=${seance.seance_hallid}&seanceId=${
+                      seance.seance_id
+                    }`
                     window.location.href = url
                   })
                 }
@@ -252,17 +182,35 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   for (let i = 0; i < 6; i++) {
+    const today = new Date()
+    const currentDay = new Date(today)
+    currentDay.setDate(today.getDate() + i)
+
     const dayIndex = currentDay.getDay()
     const dayName = daysOfWeek[dayIndex]
     const dayNumber = currentDay.getDate()
     const isActive = currentDay.toDateString() === today.toDateString()
     const isWeekend = dayIndex === 0 || dayIndex === 6
 
-    const dayElement = createDayElement(dayName, dayNumber, isActive, isWeekend)
+    const dayElement = document.createElement("a")
+    dayElement.classList.add("page-nav__day")
+    dayElement.dataset.date = currentDay.toDateString()
+
+    if (isActive) {
+      dayElement.classList.add("page-nav__day_active", "page-nav__day_chosen")
+      updateScheduleForDate(dayElement, currentDay)
+    }
+    if (isWeekend) dayElement.classList.add("page-nav__day_weekend")
+
+    dayElement.innerHTML = `
+      <span class="page-nav__day-week">${isActive ? "Сегодня," : dayName}</span>
+      <span class="page-nav__day-number">${dayName} ${dayNumber}</span>
+    `
+
+    dayElement.addEventListener("click", () =>
+      updateScheduleForDate(dayElement, currentDay)
+    )
+
     daysContainer.appendChild(dayElement)
-
-    currentDay.setDate(currentDay.getDate() + 1)
   }
-
-  fetchAndProcessData(today)
 })

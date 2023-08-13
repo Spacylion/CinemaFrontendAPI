@@ -1,41 +1,45 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const bookingData = JSON.parse(localStorage.getItem("bookingData"))
-
-  const hallConfiguration = bookingData.hallConfig
+document.addEventListener("DOMContentLoaded", async () => {
+  const dataToStore = JSON.parse(localStorage.getItem("dataToStore"))
+  const selectedSeats = JSON.parse(localStorage.getItem("selectedSeats"))
 
   const filmNameElement = document.querySelector(".ticket__title")
   const hallNameElement = document.querySelector(".ticket__hall")
   const seanceTimeElement = document.querySelector(".ticket__start")
+  const hallConfiguration = encodeURIComponent(dataToStore.hallConfig)
   const selectedSeatsElement = document.querySelector(".ticket__chairs")
   const totalCostElement = document.querySelector(".ticket__cost")
 
   if (filmNameElement) {
-    filmNameElement.textContent = bookingData.filmName
+    filmNameElement.textContent = dataToStore.filmName
   }
   if (hallNameElement) {
-    hallNameElement.textContent = bookingData.hallName
+    hallNameElement.textContent = dataToStore.hallName
   }
   if (seanceTimeElement) {
-    seanceTimeElement.textContent = bookingData.seanceTime
+    seanceTimeElement.textContent = dataToStore.seanceTime
   }
   if (selectedSeatsElement) {
-    selectedSeatsElement.textContent = bookingData.selectedSeats.join(", ")
+    if (selectedSeats) {
+      selectedSeatsElement.textContent = selectedSeats.join(", ")
+    } else {
+      selectedSeatsElement.textContent = "No seats information available"
+    }
   }
-  if (totalCostElement) {
-    totalCostElement.textContent = bookingData.totalCost + " рублей"
+  if (totalCostElement && dataToStore.totalCost) {
+    totalCostElement.textContent = dataToStore.totalCost
   }
 
   const acceptButton = document.querySelector(".acceptin-button")
   if (acceptButton) {
     acceptButton.addEventListener("click", async () => {
-      const timestamp = bookingData.timestamp
-      const hallId = bookingData.hallId
-      const seanceId = bookingData.seanceId
-      const hallConfiguration = encodeURIComponent(hallConfiguration)
+      const timestamp = dataToStore.timestamp
+      const hallId = dataToStore.hallId
+      const seanceId = dataToStore.seanceId
+
       const requestBody = `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfiguration=${hallConfiguration}`
 
       try {
-        const response = await fetch("your_api_endpoint_here", {
+        const response = await fetch("https://jscp-diplom.netoserver.ru/", {
           method: "POST",
           body: requestBody,
           headers: {
@@ -44,14 +48,14 @@ document.addEventListener("DOMContentLoaded", () => {
         })
 
         if (response.ok) {
-          const ticketData = {
-            filmName: selectedSeanceData.filmName,
-            seatsInfo: selectedSeatsInfo,
-            hallName: selectedSeanceData.hallName,
-            seanceTime: selectedSeanceData.seanceTime,
+          const ticketInfo = {
+            filmName: dataToStore.filmName,
+            hallName: dataToStore.hallName,
+            seanceTime: dataToStore.seanceTime,
+            seatsInfo: selectedSeats,
           }
 
-          localStorage.setItem("ticketData", JSON.stringify(ticketData))
+          localStorage.setItem("ticketInfo", JSON.stringify(ticketInfo))
 
           window.location.href = "ticket.html"
         } else {
