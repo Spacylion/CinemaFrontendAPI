@@ -83,7 +83,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (response.ok) {
       const data = await response.json()
       if (data && data.hallConfig !== null) {
-        confStepWrapper.innerHTML = decodeURIComponent(data.hallConfig)
+        const decodedHallConfig = decodeURIComponent(data.hallConfig)
+        confStepWrapper.innerHTML = decodedHallConfig
       } else {
         confStepWrapper.innerHTML = defaultHallConfig
       }
