@@ -1,130 +1,166 @@
-let selectedSeats = []
-let hallPlaces
-let seatStatusArray = []
-let totalCost = 0
-
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     const selectedSeance = JSON.parse(localStorage.getItem("dataToStore"))
     const {
       timestamp,
       hallId,
+      hallName,
+      hallSeatPrice,
+      hallVIPPrice,
+      filmName,
       seanceId,
       hallConfig: defaultHallConfig,
     } = selectedSeance
-
+    const filmNameElement = document.querySelector(".buying__info-title")
+    const hallNameElement = document.querySelector(".buying__info-hall")
+    const standartPriceElement = document.querySelector(
+      ".conf-step__legend-value.price-standart"
+    )
+    const vipPriceElement = document.querySelector(
+      ".conf-step__legend-value.price-vip"
+    )
+    if (filmNameElement) {
+      filmNameElement.textContent = filmName
+    }
+    if (hallNameElement) {
+      hallNameElement.textContent = hallName
+    }
+    if (standartPriceElement) {
+      standartPriceElement.textContent = hallSeatPrice
+    }
+    if (vipPriceElement) {
+      vipPriceElement.textContent = hallVIPPrice
+    }
     const confStepWrapper = document.querySelector(".conf-step__wrapper")
-
-    const response = await fetch(`https://jscp-diplom.netoserver.ru/`, {
+    let hallConfigFetched = false
+    const response = await fetch("https://jscp-diplom.netoserver.ru/", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `event=get_hallConfig&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}`,
     })
 
-    let hallConfig = defaultHallConfig
-
     if (response.ok) {
       const data = await response.json()
       if (data && data.hallConfig) {
-        hallConfig = data.hallConfig
+        confStepWrapper.innerHTML = data.hallConfig
+        hallConfigFetched = true
       }
     }
 
-    confStepWrapper.innerHTML = hallConfig
-
-    hallPlaces = parseInt(selectedSeance.hall_places)
+    if (!hallConfigFetched) {
+      confStepWrapper.innerHTML = defaultHallConfig
+    }
 
     const seatPrices = {
-      "conf-step__chair_standart": parseInt(selectedSeance.hallSeatPrice),
-      "conf-step__chair_vip": parseInt(selectedSeance.hallVIPPrice),
+      "conf-step__chair_standart": parseInt(hallSeatPrice),
+      "conf-step__chair_vip": parseInt(hallVIPPrice),
     }
 
-    seatStatusArray = Array.from({ length: hallPlaces }, () => [])
+    const selectedSeatsData = []
 
-    confStepWrapper
-      .querySelectorAll(".conf-step__chair")
-      .forEach((seat, index) => {
-        if (
-          !seat.classList.contains("conf-step__chair_taken") &&
-          !seat.classList.contains("conf-step__chair_disabled")
-        ) {
-          seat.addEventListener("click", function () {
-            const seatNumber = index + 1
-            const rowIndex = Math.floor((seatNumber - 1) / hallPlaces)
-            const seatIndex = (seatNumber - 1) % hallPlaces
+    const updateTotalCost = () => {
+      let totalCost = 0
 
-            const seatPriceClass = Array.from(seat.classList).find(
-              (className) => className in seatPrices
-            )
-            const seatPrice = seatPriceClass ? seatPrices[seatPriceClass] : 0
+      selectedSeatsData.forEach((seat) => {
+        const seatPriceClass = [...seat.seat.classList].find(
+          (className) =>
+            className.includes("conf-step__chair_standart") ||
+            className.includes("conf-step__chair_vip")
+        )
 
-            if (seat.classList.contains("conf-step__chair_selected")) {
-              selectedSeats = selectedSeats.filter(
-                (seat) => seat !== `${rowIndex}/${seatIndex}`
-              )
-              totalCost -= seatPrice
-              seatStatusArray[rowIndex][seatIndex] = null
-              seat.classList.remove("conf-step__chair_selected")
-            } else {
-              selectedSeats.push(`${rowIndex}/${seatIndex}`)
-              totalCost += seatPrice
-              seatStatusArray[rowIndex][seatIndex] = "selected"
-              seat.classList.add("conf-step__chair_selected")
-            }
-          })
+        if (seatPriceClass) {
+          totalCost += seatPrices[seatPriceClass]
         }
       })
-  } catch (error) {
-    console.error("Error:", error)
-  }
-})
 
-const bookingButton = document.querySelector(".acceptin-button")
-bookingButton.addEventListener("click", async function () {
-  try {
-    const selectedSeance = JSON.parse(localStorage.getItem("dataToStore"))
-    const { timestamp, hallId, seanceId } = selectedSeance
-
-    const confStepWrapper = document.querySelector(".conf-step__wrapper")
-    confStepWrapper
-      .querySelectorAll(".conf-step__chair")
-      .forEach((seat, rowIndex) => {
-        seat
-          .querySelectorAll(".conf-step__chair_selected")
-          .forEach((selectedSeat) => {
-            selectedSeat.classList.remove("conf-step__chair_selected")
-            selectedSeat.classList.add("conf-step__chair_taken")
-          })
-      })
-
-    const hallConfiguration = confStepWrapper.innerHTML
-    const requestBody = `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfiguration=${encodeURIComponent(
-      hallConfiguration
-    )}`
-
-    const response = await fetch("https://jscp-diplom.netoserver.ru/", {
-      method: "POST",
-      body: requestBody,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    })
-
-    if (response.ok) {
-      localStorage.setItem("selectedSeats", JSON.stringify(selectedSeats))
-      selectedSeance.totalCost = totalCost
-      localStorage.setItem("dataToStore", JSON.stringify(selectedSeance))
-
-      const ticketData = {
-        filmName: selectedSeance.filmName,
-        hallName: selectedSeance.hallName,
-        seanceTime: selectedSeance.seanceTime,
+      const dataTicket = {
+        selectedSeats: selectedSeatsData.map((seat) => ({
+          row: seat.row,
+          place: seat.place,
+        })),
         totalCost: totalCost,
-        hallConfig: hallConfiguration,
+        hallName: hallName,
+        hallConfig: confStepWrapper.outerHTML,
       }
 
-      window.location.href = "payment.html"
-    } else {
-      console.error("Error adding ticket information to the database")
+      localStorage.setItem("dataTicket", JSON.stringify(dataTicket))
     }
+
+    confStepWrapper.addEventListener("click", (event) => {
+      const clickedSeat = event.target
+      if (
+        clickedSeat.classList.contains("conf-step__chair_standart") ||
+        clickedSeat.classList.contains("conf-step__chair_vip")
+      ) {
+        clickedSeat.classList.toggle("conf-step__chair_selected")
+
+        const rowElement = clickedSeat.closest(".conf-step__row")
+        const rowNumber =
+          Array.from(
+            confStepWrapper.querySelectorAll(".conf-step__row")
+          ).indexOf(rowElement) + 1
+
+        const placeNumber =
+          Array.from(rowElement.children).indexOf(clickedSeat) + 1
+
+        const isSelected = clickedSeat.classList.contains(
+          "conf-step__chair_selected"
+        )
+
+        if (isSelected) {
+          selectedSeatsData.push({
+            seat: clickedSeat,
+            row: rowNumber,
+            place: placeNumber,
+          })
+        } else {
+          const indexToRemove = selectedSeatsData.findIndex(
+            (seat) => seat.seat === clickedSeat
+          )
+          if (indexToRemove !== -1) {
+            selectedSeatsData.splice(indexToRemove, 1)
+          }
+        }
+
+        updateTotalCost()
+      }
+    })
+
+    const bookingButton = document.querySelector(".acceptin-button")
+
+    bookingButton.addEventListener("click", () => {
+      selectedSeatsData.forEach((seat) => {
+        seat.seat.classList.remove("conf-step__chair_selected")
+        seat.seat.classList.add("conf-step__chair_taken")
+      })
+
+      let totalCost = 0
+
+      selectedSeatsData.forEach((seat) => {
+        const seatPriceClass = [...seat.seat.classList].find(
+          (className) =>
+            className.includes("conf-step__chair_standart") ||
+            className.includes("conf-step__chair_vip")
+        )
+
+        if (seatPriceClass) {
+          totalCost += seatPrices[seatPriceClass]
+        }
+      })
+
+      const dataTicket = {
+        selectedSeats: selectedSeatsData.map((seat) => ({
+          row: seat.row,
+          place: seat.place,
+        })),
+        totalCost: totalCost,
+        hallName: hallName,
+        hallConfig: confStepWrapper.outerHTML,
+      }
+
+      localStorage.setItem("dataTicket", JSON.stringify(dataTicket))
+      window.location.href = "payment.html"
+    })
   } catch (error) {
     console.error("Error:", error)
   }
