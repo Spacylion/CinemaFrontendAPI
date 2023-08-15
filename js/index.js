@@ -154,11 +154,7 @@ document.addEventListener("DOMContentLoaded", function () {
                       JSON.stringify(dataToStore)
                     )
 
-                    const url = `hall.html?timestamp=${Math.floor(
-                      seanceStartTime / 1000
-                    )}&hallId=${seance.seance_hallid}&seanceId=${
-                      seance.seance_id
-                    }`
+                    const url = `hall.html`
                     window.location.href = url
                   })
                 }
@@ -203,7 +199,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (isWeekend) dayElement.classList.add("page-nav__day_weekend")
 
     dayElement.innerHTML = `
-      <span class="page-nav__day-week">${isActive ? "Сегодня," : dayName}</span>
+      <span class="page-nav__day-week">${isActive ? "Сегодня" : dayName}</span>
       <span class="page-nav__day-number">${dayName} ${dayNumber}</span>
     `
 

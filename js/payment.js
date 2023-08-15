@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    const dataToStore = JSON.parse(localStorage.getItem("dataToStore"))
     const ticketInfo = JSON.parse(localStorage.getItem("dataTicket"))
 
     const filmNameElement = document.querySelector(".ticket__title")
@@ -10,20 +9,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     const totalCostElement = document.querySelector(".ticket__cost")
 
     if (filmNameElement) {
-      filmNameElement.textContent = dataToStore.filmName
+      filmNameElement.textContent = ticketInfo.hallName
     }
     if (hallNameElement) {
-      hallNameElement.textContent = dataToStore.hallName
+      hallNameElement.textContent = ticketInfo.hallName
     }
     if (seanceTimeElement) {
-      seanceTimeElement.textContent = dataToStore.seanceTime
+      seanceTimeElement.textContent = ticketInfo.seanceTime // Updated to seanceTime
     }
     if (selectedSeatsElement) {
-      if (
-        ticketInfo &&
-        ticketInfo.selectedSeats &&
-        ticketInfo.selectedSeats.length > 0
-      ) {
+      if (ticketInfo.selectedSeats && ticketInfo.selectedSeats.length > 0) {
         const formattedSeats = ticketInfo.selectedSeats
           .map((seat) => `${seat.row}/${seat.place}`)
           .join(", ")
@@ -32,7 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         selectedSeatsElement.textContent = "No seats information available"
       }
     }
-    if (totalCostElement && ticketInfo && ticketInfo.totalCost) {
+    if (totalCostElement && ticketInfo.totalCost) {
       totalCostElement.textContent = ticketInfo.totalCost
     }
 
@@ -42,14 +37,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         const timestamp = ticketInfo.timestamp
         const hallId = ticketInfo.hallId
         const seanceId = ticketInfo.seanceId
+        const hallConfig =
+          JSON.parse(localStorage.getItem("hallConfig")) ||
+          "default hallConfig HTML here"
 
-        const hallConfiguration = ticketInfo.hallConfig
+        console.log("Data to be sent to the server:", {
+          timestamp,
+          hallId,
+          seanceId,
+          hallConfig,
+        })
 
         try {
           const response = await fetch("https://jscp-diplom.netoserver.ru/", {
             method: "POST",
-            body: `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfiguration=${encodeURIComponent(
-              hallConfiguration
+            body: `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfig=${encodeURIComponent(
+              hallConfig
             )}`,
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
