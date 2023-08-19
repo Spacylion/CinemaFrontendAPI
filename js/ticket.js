@@ -1,56 +1,41 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const dataToStore = JSON.parse(localStorage.getItem("dataToStore"))
-  const dataTicket = JSON.parse(localStorage.getItem("dataTicket"))
+function generateTicket() {
+  const selectSeanse = JSON.parse(localStorage.selectSeanse)
 
-  const filmNameElement = document.querySelector(".ticket__title")
-  const hallNameElement = document.querySelector(".ticket__hall")
-  const seanceTimeElement = document.querySelector(".ticket__start")
-  const selectedSeatsElement = document.querySelector(".ticket__chairs")
-  const totalCostElement = document.querySelector(".ticket__cost")
+  let places = ""
+  let price = 0
 
-  if (filmNameElement) {
-    filmNameElement.textContent = dataToStore.filmName
-  }
-  if (hallNameElement) {
-    hallNameElement.textContent = dataToStore.hallName
-  }
-  if (seanceTimeElement) {
-    seanceTimeElement.textContent = dataToStore.seanceTime
-  }
-  if (selectedSeatsElement) {
-    if (
-      dataTicket &&
-      dataTicket.selectedSeats &&
-      dataTicket.selectedSeats.length > 0
-    ) {
-      const formattedSeats = dataTicket.selectedSeats
-        .map((seat) => `${seat.row}/${seat.place}`)
-        .join(", ")
-      selectedSeatsElement.textContent = formattedSeats
-    } else {
-      selectedSeatsElement.textContent = "No seats information available"
+  for (const { row, place, type } of selectSeanse.salesPlaces) {
+    if (places) {
+      places += ", "
     }
-  }
-  if (totalCostElement && dataTicket && dataTicket.totalCost) {
-    totalCostElement.textContent = dataTicket.totalCost
+    places += `${row}/${place}`
+    price +=
+      type === "standart"
+        ? Number(selectSeanse.priceStandart)
+        : Number(selectSeanse.priceVip)
   }
 
-  const qrData = `${dataToStore.filmName}\n${
-    dataTicket &&
-    dataTicket.selectedSeats &&
-    dataTicket.selectedSeats.length > 0
-      ? dataTicket.selectedSeats
-          .map((seat) => `${seat.row}\${seat.place}`)
-          .join("\n")
-      : "No seats information available"
-  }\n${dataToStore.hallName}\n${dataToStore.seanceTime}`
+  const ticketTitle = document.querySelector(".ticket__title")
+  const ticketChairs = document.querySelector(".ticket__chairs")
+  const ticketHall = document.querySelector(".ticket__hall")
+  const ticketStart = document.querySelector(".ticket__start")
+  const ticketQRInfo = document.querySelector(".ticket__info-qr")
 
-  const qrcodeContainer = document.getElementById("qrcode")
-  const qrcode = QRCreator(qrData)
+  ticketTitle.textContent = selectSeanse.filmName
+  ticketChairs.textContent = places
+  ticketHall.textContent = selectSeanse.hallName
+  ticketStart.textContent = selectSeanse.seanceTime
 
-  if (qrcode.error) {
-    qrcodeContainer.textContent = `Error: ${qrcode.error}`
-  } else {
-    qrcodeContainer.appendChild(qrcode.result)
-  }
-})
+  const date = new Date(Number(`${selectSeanse.seanceTimeStamp}000`))
+  const formattedDate = date.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+
+  const textQR = `Фильм: ${selectSeanse.filmName} Зал: ${selectSeanse.hallName} Ряд/Место ${places} Дата: ${formattedDate} Начало сеанса: ${selectSeanse.seanceTime} Билет действителен строго на свой сеанс`
+
+  const qrcode = QRCreator(textQR, { image: "SVG" })
+  qrcode.download()
+  ticketQRInfo.append(qrcode.result)
+}

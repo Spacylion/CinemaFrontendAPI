@@ -1,132 +1,102 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  try {
-    const selectedSeance = JSON.parse(localStorage.getItem("dataToStore"))
-    const {
-      timestamp,
-      hallId,
-      hallName,
-      hallSeatPrice,
-      hallVIPPrice,
-      seanceId,
-      hallConfig: defaultHallConfig,
-      filmName,
-      startTime,
-    } = selectedSeance
+document.addEventListener("DOMContentLoaded", () => {
+  const selectSeanse = JSON.parse(localStorage.selectSeanse)
+  console.log(selectSeanse)
 
-    const confStepWrapper = document.querySelector(".conf-step__wrapper")
-    const seatPrices = {
-      "conf-step__chair_standart": parseInt(hallSeatPrice),
-      "conf-step__chair_vip": parseInt(hallVIPPrice),
-    }
+  const buttonAcceptin = document.querySelector(".acceptin-button")
+  const buyingInfoTitle = document.querySelector(".buying__info-title")
+  const buyingInfoStart = document.querySelector(".buying__info-start")
+  const buyingInfoHall = document.querySelector(".buying__info-hall")
+  const priceStandart = document.querySelector(".price-standart")
+  const confStepWrapper = document.querySelector(".conf-step__wrapper")
 
-    const filmNameElement = document.querySelector(".buying__info-title")
-    const startTimeElement = document.querySelector(".buying__info-start")
-    const hallNameElement = document.querySelector(".buying__info-hall")
-    const standartPriceElement = document.querySelector(
-      ".conf-step__legend-value.price-standart"
+  const updateButtonState = () => {
+    const chairsSelected = document.querySelectorAll(
+      ".conf-step__row .conf-step__chair_selected"
     )
-    const vipPriceElement = document.querySelector(
-      ".conf-step__legend-value.price-vip"
-    )
-
-    if (filmNameElement) filmNameElement.textContent = filmName
-    if (startTimeElement) startTimeElement.textContent = startTime
-    if (hallNameElement) hallNameElement.textContent = hallName
-    if (standartPriceElement) standartPriceElement.textContent = hallSeatPrice
-    if (vipPriceElement) vipPriceElement.textContent = hallVIPPrice
-
-    let totalCost = 0
-    const updateTotalCost = () => {
-      totalCost = 0
-      const selectedSeatsData = []
-
-      confStepWrapper
-        .querySelectorAll(".conf-step__chair_selected")
-        .forEach((seat) => {
-          const seatPriceClass = [...seat.classList].find(
-            (className) =>
-              className.includes("conf-step__chair_standart") ||
-              className.includes("conf-step__chair_vip")
-          )
-
-          if (seatPriceClass) totalCost += seatPrices[seatPriceClass]
-
-          const rowElement = seat.closest(".conf-step__row")
-          const rowNumber =
-            Array.from(
-              confStepWrapper.querySelectorAll(".conf-step__row")
-            ).indexOf(rowElement) + 1
-          const placeNumber = Array.from(rowElement.children).indexOf(seat) + 1
-
-          selectedSeatsData.push({
-            row: rowNumber,
-            place: placeNumber,
-          })
-        })
-
-      const dataTicket = {
-        selectedSeats: selectedSeatsData,
-        totalCost: totalCost,
-        hallName: hallName,
-      }
-
-      console.log("Data Ticket with hallConfig:", dataTicket)
-      localStorage.setItem("dataTicket", JSON.stringify(dataTicket))
-    }
-
-    const response = await fetch("https://jscp-diplom.netoserver.ru/", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `event=get_hallConfig&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}`,
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data && data.hallConfig !== null) {
-        const decodedHallConfig = decodeURIComponent(data.hallConfig)
-        confStepWrapper.innerHTML = decodedHallConfig
-      } else {
-        confStepWrapper.innerHTML = defaultHallConfig
-      }
-    } else {
-      confStepWrapper.innerHTML = defaultHallConfig
-    }
-
-    confStepWrapper.addEventListener("click", (event) => {
-      const clickedSeat = event.target
-      if (
-        clickedSeat.classList.contains("conf-step__chair_standart") ||
-        clickedSeat.classList.contains("conf-step__chair_vip") ||
-        clickedSeat.classList.contains("conf-step__chair_selected")
-      ) {
-        clickedSeat.classList.toggle("conf-step__chair_selected")
-        updateTotalCost()
-        localStorage.setItem(
-          "hallConfig",
-          JSON.stringify(confStepWrapper.innerHTML)
-        )
-      }
-    })
-
-    const bookingButton = document.querySelector(".acceptin-button")
-
-    bookingButton.addEventListener("click", () => {
-      const selectedSeats = confStepWrapper.querySelectorAll(
-        ".conf-step__chair_selected"
-      )
-
-      selectedSeats.forEach((seat) => {
-        seat.classList.remove("conf-step__chair_selected")
-        seat.classList.add("conf-step__chair_taken")
-      })
-
-      localStorage.setItem(
-        "hallConfig",
-        JSON.stringify(confStepWrapper.innerHTML)
-      )
-      window.location.href = "payment.html"
-    })
-  } catch (error) {
-    console.error("Error:", error)
+    buttonAcceptin.disabled = chairsSelected.length === 0
   }
+
+  const handleChairClick = (event) => {
+    if (event.target.classList.contains("conf-step__chair_taken")) {
+      return
+    }
+    event.target.classList.toggle("conf-step__chair_selected")
+    updateButtonState()
+  }
+
+  buyingInfoTitle.textContent = selectSeanse.filmName
+  buyingInfoStart.textContent = `Начало сеанса ${selectSeanse.seanceTime}`
+  buyingInfoHall.textContent = selectSeanse.hallName
+  priceStandart.textContent = selectSeanse.priceStandart
+
+  const params = new URLSearchParams({
+    event: "get_hallConfig",
+    timestamp: selectSeanse.seanceTimeStamp,
+    hallId: selectSeanse.hallId,
+    seanceId: selectSeanse.seanceId,
+  })
+
+  fetch("https://jscp-diplom.netoserver.ru/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: params.toString(),
+  })
+    .then((response) => response.json())
+    .then((resp) => {
+      if (resp) {
+        selectSeanse.hallConfig = resp
+      }
+      confStepWrapper.innerHTML = selectSeanse.hallConfig
+      const chairs = document.querySelectorAll(
+        ".conf-step__row .conf-step__chair"
+      )
+      chairs.forEach((chair) => {
+        chair.addEventListener("click", handleChairClick)
+      })
+      updateButtonState()
+    })
+    .catch((error) => {
+      console.error("Ошибка запроса:", error)
+    })
+
+  buttonAcceptin.addEventListener("click", (event) => {
+    event.preventDefault()
+
+    const selectedPlaces = []
+    const divRows = Array.from(
+      document.getElementsByClassName("conf-step__row")
+    )
+
+    for (let i = 0; i < divRows.length; i++) {
+      const spanPlaces = Array.from(
+        divRows[i].getElementsByClassName("conf-step__chair")
+      )
+
+      for (let j = 0; j < spanPlaces.length; j++) {
+        if (spanPlaces[j].classList.contains("conf-step__chair_selected")) {
+          const typePlace = spanPlaces[j].classList.contains(
+            "conf-step__chair_standart"
+          )
+            ? "standart"
+            : "vip"
+
+          selectedPlaces.push({
+            row: i + 1,
+            place: j + 1,
+            type: typePlace,
+          })
+        }
+      }
+    }
+
+    selectSeanse.hallConfig = confStepWrapper.innerHTML
+    selectSeanse.salesPlaces = selectedPlaces
+    localStorage.clear()
+    localStorage.setItem("selectSeanse", JSON.stringify(selectSeanse))
+    const link = document.createElement("a")
+    link.href = "payment.html"
+    link.click()
+  })
 })

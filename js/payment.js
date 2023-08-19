@@ -1,73 +1,65 @@
-function updateTicketInfo() {
-  const ticketInfo = JSON.parse(localStorage.getItem("dataTicket"))
-  const timeConfig = JSON.parse(localStorage.getItem("dataToStore"))
-  const filmNameElement = document.querySelector(".ticket__title")
-  const hallNameElement = document.querySelector(".ticket__hall")
-  const seanceTimeElement = document.querySelector(".ticket__start")
-  const selectedSeatsElement = document.querySelector(".ticket__chairs")
-  const totalCostElement = document.querySelector(".ticket__cost")
+const selectSeanse = JSON.parse(localStorage.selectSeanse)
 
-  if (filmNameElement) {
-    filmNameElement.textContent = ticketInfo.hallName
-  }
-  if (hallNameElement) {
-    hallNameElement.textContent = ticketInfo.hallName
-  }
-  if (seanceTimeElement) {
-    seanceTimeElement.textContent = timeConfig.seanceTime
-  }
-  if (selectedSeatsElement) {
-    if (ticketInfo.selectedSeats && ticketInfo.selectedSeats.length > 0) {
-      const formattedSeats = ticketInfo.selectedSeats
-        .map((seat) => `${seat.row}/${seat.place}`)
-        .join(", ")
-      selectedSeatsElement.textContent = formattedSeats
-    } else {
-      selectedSeatsElement.textContent = "No seats information available"
-    }
-  }
-  if (totalCostElement && ticketInfo.totalCost) {
-    totalCostElement.textContent = ticketInfo.totalCost
-  }
+const ticketTitle = document.querySelector(".ticket__title")
+const ticketChairs = document.querySelector(".ticket__chairs")
+const ticketHall = document.querySelector(".ticket__hall")
+const ticketStart = document.querySelector(".ticket__start")
+const ticketCost = document.querySelector(".ticket__cost")
+const acceptButton = document.querySelector(".acceptin-button")
 
-  const acceptButton = document.querySelector(".acceptin-button")
-  if (acceptButton) {
-    acceptButton.addEventListener("click", sendHallConfigToServer)
+let places = ""
+let price = 0
+
+for (const { row, place, type } of selectSeanse.salesPlaces) {
+  if (places) {
+    places += ", "
   }
+  places += `${row}/${place}`
+  price +=
+    type === "standart"
+      ? Number(selectSeanse.priceStandart)
+      : Number(selectSeanse.priceVip)
 }
 
-async function sendHallConfigToServer() {
-  const hallConfig = JSON.parse(localStorage.getItem("hallConfig"))
-  const timeConfig = JSON.parse(localStorage.getItem("dataToStore"))
-  const timestamp = timeConfig.timestamp
-  const hallId = timeConfig.hallId
-  const seanceId = timeConfig.seanceId
+ticketTitle.textContent = selectSeanse.filmName
+ticketChairs.textContent = places
+ticketHall.textContent = selectSeanse.hallName
+ticketStart.textContent = selectSeanse.seanceTime
+ticketCost.textContent = price
 
-  const encodedHallConfig = encodeURIComponent(JSON.stringify(hallConfig))
+const newHallConfig = selectSeanse.hallConfig.replace(/selected/g, "taken")
+
+console.log(selectSeanse.seanceTimeStamp)
+console.log(selectSeanse.hallId)
+console.log(selectSeanse.seanceId)
+console.log(newHallConfig)
+
+acceptButton.addEventListener("click", async (event) => {
+  event.preventDefault()
+
+  const params = new URLSearchParams({
+    event: "sale_add",
+    timestamp: selectSeanse.seanceTimeStamp,
+    hallId: selectSeanse.hallId,
+    seanceId: selectSeanse.seanceId,
+    hallConfiguration: newHallConfig,
+  })
 
   try {
     const response = await fetch("https://jscp-diplom.netoserver.ru/", {
       method: "POST",
-      body: `event=sale_add&timestamp=${timestamp}&hallId=${hallId}&seanceId=${seanceId}&hallConfig=${encodedHallConfig}`,
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
+      body: params.toString(),
     })
 
     if (response.ok) {
-      console.log("Updated hall configuration successfully sent to the server.")
+      // Handle success
     } else {
-      console.log("Failed to send updated hall configuration to the server.")
+      console.error("Ошибка запроса:", response.status, response.statusText)
     }
   } catch (error) {
-    console.error("An error occurred:", error)
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  try {
-    updateTicketInfo()
-  } catch (error) {
-    console.error("Error:", error)
+    console.error("Ошибка запроса:", error)
   }
 })

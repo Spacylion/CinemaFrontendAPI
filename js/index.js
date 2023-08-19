@@ -1,212 +1,138 @@
-document.addEventListener("DOMContentLoaded", function () {
-  const daysContainer = document.querySelector(".page-nav")
-  const filmsContainer = document.querySelector(".movie")
-  const daysOfWeek = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
+const dayWeekList = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
 
-  function updateScheduleForDate(dateElement, selectedDate) {
-    const chosenDay = document.querySelector(".page-nav__day_chosen")
-    if (chosenDay) chosenDay.classList.remove("page-nav__day_chosen")
-    dateElement.classList.add("page-nav__day_chosen")
-
-    fetchAndProcessData(selectedDate)
-  }
-
-  function fetchAndProcessData(selectedDate) {
-    fetch("https://jscp-diplom.netoserver.ru/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: `event=update`,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        filmsContainer.innerHTML = ""
-        localStorage.setItem("apiResponseData", JSON.stringify(data))
-
-        const currentTime = new Date().getTime()
-        const films = data.films.result
-        const seances = data.seances.result
-        const halls = data.halls.result.filter((hall) => hall.hall_open === "1")
-
-        films.forEach((film) => {
-          const filmElement = document.createElement("section")
-          filmElement.className = "movie"
-          const seancesForFilm = seances.filter(
-            (seance) => seance.seance_filmid === film.film_id
-          )
-          const movieInfoElement = document.createElement("div")
-          movieInfoElement.classList.add("movie__info")
-
-          const moviePosterElement = document.createElement("div")
-          moviePosterElement.classList.add("movie__poster")
-
-          const filmPosterElement = document.createElement("img")
-          filmPosterElement.src = film.film_poster
-          filmPosterElement.alt = film.film_name
-          filmPosterElement.classList.add("movie__poster-image")
-
-          const movieDescriptionElement = document.createElement("div")
-          movieDescriptionElement.classList.add("movie__description")
-
-          const movieTitleElement = document.createElement("h2")
-          movieTitleElement.classList.add("movie__title")
-          movieTitleElement.textContent = film.film_name
-
-          const seanceListElement = document.createElement("ul")
-          seanceListElement.classList.add("movie__seance-list")
-
-          seances.forEach((seance) => {
-            if (seance.seance_filmid === film.film_id) {
-              const seanceTimeElement = document.createElement("li")
-              seanceTimeElement.className = "movie__seance-time"
-              seanceTimeElement.textContent = seance.seance_time
-
-              seanceListElement.appendChild(seanceTimeElement)
-            }
-          })
-
-          const movieSynopsisElement = document.createElement("p")
-          movieSynopsisElement.classList.add("movie__synopsis")
-          movieSynopsisElement.textContent = film.film_description
-
-          const movieDataElement = document.createElement("p")
-          movieDataElement.classList.add("movie__data")
-
-          const movieDurationElement = document.createElement("span")
-          movieDurationElement.classList.add("movie__data-duration")
-          movieDurationElement.textContent = `${film.film_duration} минут`
-
-          const movieOriginElement = document.createElement("span")
-          movieOriginElement.classList.add("movie__data-origin")
-          movieOriginElement.textContent = film.film_origin
-
-          movieDescriptionElement.appendChild(movieTitleElement)
-          movieDescriptionElement.appendChild(movieSynopsisElement)
-          movieDataElement.appendChild(movieDurationElement)
-          movieDataElement.appendChild(movieOriginElement)
-          movieDescriptionElement.appendChild(movieDataElement)
-
-          moviePosterElement.appendChild(filmPosterElement)
-          movieInfoElement.appendChild(moviePosterElement)
-          movieInfoElement.appendChild(movieDescriptionElement)
-
-          filmElement.appendChild(movieInfoElement)
-
-          halls.forEach((hall) => {
-            const seancesForHallAndFilm = seancesForFilm.filter(
-              (seance) => seance.seance_hallid === hall.hall_id
-            )
-
-            if (seancesForHallAndFilm.length > 0) {
-              const seancesHallElement = document.createElement("div")
-              seancesHallElement.classList.add("movie-seances__hall")
-
-              const hallTitleElement = document.createElement("h3")
-              hallTitleElement.classList.add("movie-seances__hall-title")
-              hallTitleElement.textContent = hall.hall_name
-
-              const seancesListElement = document.createElement("ul")
-              seancesListElement.classList.add("movie-seances__list")
-
-              seancesForHallAndFilm.forEach((seance) => {
-                const seanceTimeBlockElement = document.createElement("li")
-                seanceTimeBlockElement.classList.add(
-                  "movie-seances__time-block"
-                )
-
-                const seanceTimeLinkElement = document.createElement("a")
-                seanceTimeLinkElement.classList.add("movie-seances__time")
-                seanceTimeLinkElement.textContent = seance.seance_time
-
-                const [hours, minutes] = seance.seance_time.split(":")
-                const seanceStartTime = new Date(
-                  selectedDate.getFullYear(),
-                  selectedDate.getMonth(),
-                  selectedDate.getDate(),
-                  hours,
-                  minutes
-                ).getTime()
-
-                if (currentTime >= seanceStartTime) {
-                  seanceTimeLinkElement.style.backgroundColor = "#ccc"
-                  seanceTimeLinkElement.style.color = "#666"
-                  seanceTimeLinkElement.style.cursor = "not-allowed"
-                  seanceTimeLinkElement.style.pointerEvents = "none"
-                } else {
-                  seanceTimeLinkElement.addEventListener("click", () => {
-                    const dataToStore = {
-                      filmName: film.film_name,
-                      hallConfig: hall.hall_config,
-                      hallId: seance.seance_hallid,
-                      hallName: hall.hall_name,
-                      hallRaw: hall.hall_rows,
-                      hallSeatPrice: hall.hall_price_standart,
-                      hallVIPPrice: hall.hall_price_vip,
-                      hall_places: hall.hall_places,
-                      seanceId: seance.seance_id,
-                      seanceTime: seance.seance_time,
-                      timestamp: Math.floor(seanceStartTime / 1000),
-                    }
-
-                    localStorage.setItem(
-                      "dataToStore",
-                      JSON.stringify(dataToStore)
-                    )
-
-                    const url = `hall.html`
-                    window.location.href = url
-                  })
-                }
-
-                seanceTimeBlockElement.appendChild(seanceTimeLinkElement)
-                seancesListElement.appendChild(seanceTimeBlockElement)
-              })
-
-              seancesHallElement.appendChild(hallTitleElement)
-              seancesHallElement.appendChild(seancesListElement)
-              filmElement.appendChild(seancesHallElement)
-            }
-          })
-
-          filmsContainer.appendChild(filmElement)
-        })
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error)
-      })
-  }
-
-  for (let i = 0; i < 6; i++) {
-    const today = new Date()
-    const currentDay = new Date(today)
-    currentDay.setDate(today.getDate() + i)
-
-    const dayIndex = currentDay.getDay()
-    const dayName = daysOfWeek[dayIndex]
-    const dayNumber = currentDay.getDate()
-    const isActive = currentDay.toDateString() === today.toDateString()
-    const isWeekend = dayIndex === 0 || dayIndex === 6
-
-    const dayElement = document.createElement("a")
-    dayElement.classList.add("page-nav__day")
-    dayElement.dataset.date = currentDay.toDateString()
-
-    if (isActive) {
-      dayElement.classList.add("page-nav__day_active", "page-nav__day_chosen")
-      updateScheduleForDate(dayElement, currentDay)
+document.addEventListener("DOMContentLoaded", () => {
+  const dayNumberElements = document.querySelectorAll(".page-nav__day-number")
+  const dayWeekElements = document.querySelectorAll(".page-nav__day-week")
+  const today = new Date()
+  today.setHours(0, 0, 0)
+  dayNumberElements.forEach((dayNumberElement, i) => {
+    const day = new Date(today.getTime() + i * 24 * 60 * 60 * 1000)
+    const timestamp = Math.trunc(day / 1000)
+    dayNumberElement.innerHTML = `${day.getDate()},`
+    dayWeekElements[i].innerHTML = dayWeekList[day.getDay()]
+    const link = dayNumberElement.parentNode
+    link.dataset.timeStamp = timestamp
+    if (
+      dayWeekElements[i].innerHTML === "Вс" ||
+      dayWeekElements[i].innerHTML === "Сб"
+    ) {
+      link.classList.add("page-nav__day_weekend")
+    } else {
+      link.classList.remove("page-nav__day_weekend")
     }
-    if (isWeekend) dayElement.classList.add("page-nav__day_weekend")
+  })
 
-    dayElement.innerHTML = `
-      <span class="page-nav__day-week">${isActive ? "Сегодня" : dayName}</span>
-      <span class="page-nav__day-number">${dayName} ${dayNumber}</span>
-    `
+  createRequest({
+    url: "https://jscp-diplom.netoserver.ru/",
+    params: "event=update",
+    callback: (resp) => {
+      const data = {}
+      data.seances = resp.seances.result
+      data.films = resp.films.result
+      data.halls = resp.halls.result
+      data.halls = data.halls.filter((hall) => hall.hall_open == 1)
+      console.log(data)
 
-    dayElement.addEventListener("click", () =>
-      updateScheduleForDate(dayElement, currentDay)
-    )
+      const main = document.querySelector("main")
+      data.films.forEach((film) => {
+        let seancesHTML = ""
+        const filmId = film.film_id
+        data.halls.forEach((hall) => {
+          const seances = data.seances.filter(
+            (seance) =>
+              seance.seance_hallid == hall.hall_id &&
+              seance.seance_filmid == filmId
+          )
+          if (seances.length > 0) {
+            seancesHTML += `
+                   <div class="movie-seances__hall">
+                     <h3 class="movie-seances__hall-title">${hall.hall_name}</h3>
+                     <ul class="movie-seances__list">`
+            seances.forEach((seance) => {
+              seancesHTML += `<li class="movie-seances__time-block"><a class="movie-seances__time" href="hall.html" data-film-name="${film.film_name}" data-film-id="${film.film_id}" data-hall-id="${hall.hall_id}" data-hall-name="${hall.hall_name}" data-price-vip="${hall.hall_price_vip}" data-price-standart="${hall.hall_price_standart}" data-seance-id="${seance.seance_id}" data-seance-start="${seance.seance_start}" data-seance-time="${seance.seance_time}">${seance.seance_time}</a></li>`
+            })
+            seancesHTML += `
+                     </ul>
+                   </div>`
+          }
+        })
+        if (seancesHTML) {
+          main.innerHTML += `
+            <section class="movie">
+              <div class="movie__info">
+                <div class="movie__poster">
+                  <img class="movie__poster-image" alt="Звёздные войны постер" src="${film.film_poster}">
+                </div>
+                <div class="movie__description">
+                  <h2 class="movie__title">${film.film_name}</h2>
+                  <p class="movie__synopsis">${film.film_description}</p>
+                  <p class="movie__data">
+                    <span class="movie__data-duration">${film.film_duration} мин.</span>
+                    <span class="movie__data-origin">${film.film_origin}</span>
+                  </p>
+                </div>
+              </div>
+              ${seancesHTML}
+            </section>
+              `
+        }
+      })
 
-    daysContainer.appendChild(dayElement)
-  }
+      const dayLinks = Array.from(document.querySelectorAll(".page-nav__day"))
+      const movieSeances = Array.from(
+        document.querySelectorAll(".movie-seances__time")
+      )
+
+      const getTimeStampDay = (event) => {
+        let timeStampDay = Number(event.target.dataset.timeStamp)
+        if (isNaN(timeStampDay)) {
+          timeStampDay = Number(
+            event.target.closest(".page-nav__day").dataset.timeStamp
+          )
+        }
+        return timeStampDay
+      }
+
+      const updateSeances = (timeStampDay) => {
+        movieSeances.forEach((movieSeance) => {
+          const timeStampSeanceDay =
+            Number(movieSeance.dataset.seanceStart) * 60
+          const timeStampSeance = timeStampDay + timeStampSeanceDay
+          const timeStampNow = Math.trunc(+new Date() / 1000)
+          movieSeance.dataset.seanceTimeStamp = timeStampSeance
+          movieSeance.classList.toggle(
+            "acceptin-button-disabled",
+            timeStampSeance - timeStampNow <= 0
+          )
+        })
+      }
+
+      dayLinks.forEach((dayLink) =>
+        dayLink.addEventListener("click", (event) => {
+          event.preventDefault()
+          document
+            .querySelector(".page-nav__day_chosen")
+            .classList.remove("page-nav__day_chosen")
+          dayLink.classList.add("page-nav__day_chosen")
+          const timeStampDay = getTimeStampDay(event)
+          updateSeances(timeStampDay)
+        })
+      )
+
+      dayLinks[0].click()
+
+      movieSeances.forEach((movieSeance) =>
+        movieSeance.addEventListener("click", (event) => {
+          const { hallId } = event.target.dataset
+          const selectSeanse = {
+            ...event.target.dataset,
+            hallConfig: data.halls.find((hall) => hall.hall_id == hallId)
+              .hall_config,
+          }
+          localStorage.clear()
+          localStorage.setItem("selectSeanse", JSON.stringify(selectSeanse))
+        })
+      )
+    },
+  })
 })
