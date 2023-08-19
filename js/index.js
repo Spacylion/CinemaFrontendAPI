@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <section class="movie">
               <div class="movie__info">
                 <div class="movie__poster">
-                  <img class="movie__poster-image" alt="Звёздные войны постер" src="${film.film_poster}">
+                  <img class="movie__poster-image" alt="постер" src="${film.film_poster}">
                 </div>
                 <div class="movie__description">
                   <h2 class="movie__title">${film.film_name}</h2>
