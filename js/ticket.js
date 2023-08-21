@@ -15,11 +15,11 @@ function generateTicket() {
         : Number(selectSeanse.priceVip)
   }
 
-  const ticketTitle = document.querySelector(".ticket__title")
-  const ticketChairs = document.querySelector(".ticket__chairs")
-  const ticketHall = document.querySelector(".ticket__hall")
-  const ticketStart = document.querySelector(".ticket__start")
-  const ticketQRInfo = document.querySelector(".ticket__info-qr")
+  const ticketTitle = document.querySelector(".ticket__details.ticket__title")
+  const ticketChairs = document.querySelector(".ticket__details.ticket__chairs")
+  const ticketHall = document.querySelector(".ticket__details.ticket__hall")
+  const ticketStart = document.querySelector(".ticket__details.ticket__start")
+  const qrcodeContainer = document.getElementById("qrcode")
 
   ticketTitle.textContent = selectSeanse.filmName
   ticketChairs.textContent = places
@@ -36,6 +36,8 @@ function generateTicket() {
   const textQR = `Фильм: ${selectSeanse.filmName} Зал: ${selectSeanse.hallName} Ряд/Место ${places} Дата: ${formattedDate} Начало сеанса: ${selectSeanse.seanceTime} Билет действителен строго на свой сеанс`
 
   const qrcode = QRCreator(textQR, { image: "SVG" })
-  qrcode.download()
-  ticketQRInfo.append(qrcode.result)
+
+  qrcodeContainer.appendChild(qrcode.result)
 }
+
+document.addEventListener("DOMContentLoaded", generateTicket)
